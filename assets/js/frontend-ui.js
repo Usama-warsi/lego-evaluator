@@ -1,15 +1,27 @@
 jQuery(document).ready(function ($) {
+    // State Management
     var setData = null;
-    var userInputs = {
-        condition: 'used',
-        box_condition: 'good',
-        is_complete: true,
-        has_minifigs: true,
-        is_assembled: false,
-        missing_minifigs: []
-    };
+    var agreementList = [];
+    var userInputs = {};
 
-    // Step 1: Search Set
+    // Initialization
+    function resetSetState() {
+        userInputs = {
+            condition: 'used',
+            seals_intact: true,
+            box_condition: 'like_new',
+            is_complete: true,
+            completion_level: '100',
+            is_built: true,
+            weight: 0,
+            has_box: true,
+            has_instructions: true,
+            missing_minifigs: {}
+        };
+    }
+    resetSetState();
+
+    // 1. Search Logic
     $('#tee-search-set').on('click', function () {
         searchSet();
     });
@@ -25,26 +37,10 @@ jQuery(document).ready(function ($) {
         $('#tee-search-error').hide();
         $('#tee-loading').show();
         $('#tee-search-set').prop('disabled', true);
-        $('#tee-result-ui, #tee-minifigs-ui, #tee-main-ui, #tee-set-preview').hide();
+        $('#tee-result-ui, #tee-main-ui, #tee-set-preview, #tee-minifigs-ui').hide();
 
-        // Reset Minifig rendering state
+        resetSetState();
         $('#tee-minifigs-list').empty().removeData('rendered-set');
-
-        // Reset user inputs to default
-        userInputs = {
-            condition: 'used',
-            box_condition: 'good',
-            is_complete: true,
-            has_minifigs: true,
-            is_assembled: false,
-            missing_minifigs: []
-        };
-
-        // Reset UI Toggles
-        $('#tee-check-parts, #tee-check-minifigs, #tee-check-box, #tee-check-instructions').prop('checked', true);
-        $('#tee-check-assembled').prop('checked', false);
-
-        // Reset Condition Cards
         $('.tee-cond-card').removeClass('active');
         $('.tee-cond-card[data-cond="used"]').addClass('active');
 
@@ -62,15 +58,14 @@ jQuery(document).ready(function ($) {
 
                 if (response.success) {
                     setData = response.data;
+                    userInputs.weight = parseFloat(setData.weight) || 0;
 
-                    // Show Set Preview
                     $('#tee-set-image-thumb').attr('src', setData.image);
                     $('#tee-set-name-preview').text(setData.name + ' (#' + setData.id + ')');
                     $('#tee-set-preview').fadeIn();
-
                     $('#tee-main-ui').fadeIn();
-                    // Initialize with default 'used' logic or keep current
-                    updateLogicAndCalculate();
+
+                    renderDynamicFlow();
                 } else {
                     $('#tee-search-error').text(response.data).show();
                 }
@@ -78,105 +73,215 @@ jQuery(document).ready(function ($) {
         });
     }
 
-    // Condition Card Selection
+    // 2. UI Interaction Logic
     $('.tee-cond-card').on('click', function () {
         $('.tee-cond-card').removeClass('active');
         $(this).addClass('active');
         userInputs.condition = $(this).data('cond');
-        updateLogicAndCalculate();
+        renderDynamicFlow();
     });
 
-    // Toggle Switches
-    $('.tee-switch input').on('change', function () {
-        updateLogicAndCalculate();
-    });
+    function renderSwatches(field, options, currentValue) {
+        var group = $('<div class="tee-swatch-group" data-field="' + field + '"></div>');
+        $.each(options, function (i, opt) {
+            var active = (opt.value === currentValue || opt.value === String(currentValue)) ? 'active' : '';
+            var swatch = $('<div class="tee-swatch ' + active + '" data-value="' + opt.value + '">' +
+                '<span>' + opt.label +
+                (opt.desc ? '<span class="tee-info-icon">i<span class="tee-tooltip-text">' + opt.desc + '</span></span>' : '') +
+                '</span>' +
+                '</div>');
+            group.append(swatch);
+        });
+        return group;
+    }
 
-    function updateLogicAndCalculate() {
-        if (!setData) return;
+    function renderNewFlow(container) {
+        // Q: Seals Intact?
+        container.append('<label class="tee-question-label">Are all box seals intact?</label>');
+        container.append(renderSwatches('seals_intact', [
+            { label: 'Yes', value: true, desc: 'Original tape/seals unbroken' },
+            { label: 'No', value: false, desc: 'Seals cut or box opened' }
+        ], userInputs.seals_intact));
 
-        // Sync inputs from UI
-        userInputs.is_complete = $('#tee-check-parts').is(':checked');
-        userInputs.has_minifigs = $('#tee-check-minifigs').is(':checked');
-        userInputs.has_box = $('#tee-check-box').is(':checked');
-        userInputs.has_instructions = $('#tee-check-instructions').is(':checked');
-        userInputs.is_assembled = $('#tee-check-assembled').is(':checked');
-
-        // Show/Hide relevant rows based on condition
-        if (userInputs.condition === 'new_sealed') {
-            $('#row-parts, #row-minifigs, #row-instructions').hide();
-            $('#row-assembled').hide();
-            $('#row-box strong').text('Box is in Good Condition');
-            $('#row-box p').text('Uncheck if box is damaged');
-            userInputs.box_condition = userInputs.has_box ? 'good' : 'damaged';
+        if (userInputs.seals_intact) {
+            // Seals Yes: Box Condition
+            container.append('<label class="tee-question-label">What is the box condition?</label>');
+            container.append(renderSwatches('box_condition', [
+                { label: 'Like New', value: 'like_new', desc: 'Box is in good condition, with some minor shelf wear accepted. Box should have no major scrapes/dents/holes etc' },
+                { label: 'Fair', value: 'fair', desc: 'Box has some signs of larger dents, scratches, label tears/residue. Box should not be heavily crushed, have holes and box and seals must be intact' },
+                { label: 'Bad', value: 'bad', desc: 'Box has signs of heavy wear to corners, tears to box artwork, crushing, holes or heavy scratching' }
+            ], userInputs.box_condition));
         } else {
-            $('#row-parts, #row-minifigs, #row-instructions').show();
-            $('#row-box strong').text('Has Original Box');
-            $('#row-box p').text('Original packaging included');
+            // Seals No: Is Set Complete?
+            container.append('<label class="tee-question-label">Is the set complete?</label>');
+            container.append(renderSwatches('is_complete', [
+                { label: 'Yes', value: true, desc: 'Includes all parts & bags' },
+                { label: 'No', value: false, desc: 'Missing parts or bags' }
+            ], userInputs.is_complete));
 
-            if (userInputs.condition === 'used') {
-                $('#row-assembled').show();
-            } else {
-                $('#row-assembled').hide();
-                $('#tee-check-assembled').prop('checked', false);
-                userInputs.is_assembled = false;
+            if (!userInputs.is_complete) {
+                // Incomplete: Weight
+                var qWeight = $('<div class="tee-question-item">' +
+                    '<label class="tee-question-label">Enter weight of all bags present (grams)</label>' +
+                    '<input type="number" id="tee-weight-input" class="tee-input" value="' + userInputs.weight + '">' +
+                    '</div>');
+                container.append(qWeight);
             }
         }
 
-        // Show minifigs checklist if not 'new_sealed' and the "Has All Minifigures" toggle is OFF
-        if (userInputs.condition !== 'new_sealed' && !userInputs.has_minifigs && Object.keys(setData.minifigs_data).length > 0) {
-            renderMinifigs();
-            $('#tee-minifigs-ui').fadeIn();
+        bindDynamicEvents();
+    }
+
+    function renderUsedFlow(container) {
+        // Q: How complete?
+        container.append('<label class="tee-question-label">How complete is the set?</label>');
+        container.append(renderSwatches('completion_level', [
+            { label: '100% Complete', value: '100', desc: 'Includes all minifigures' },
+            { label: 'Over 95%', value: '95', desc: 'Missing minor parts' },
+            { label: 'Under 95%', value: 'less', desc: 'Incomplete/Mixed' }
+        ], userInputs.completion_level));
+
+        if (userInputs.completion_level !== 'less') {
+            // Built?
+            container.append('<label class="tee-question-label">Is the set built up?</label>');
+            container.append(renderSwatches('is_built', [
+                { label: 'Yes', value: true, desc: 'Currently assembled' },
+                { label: 'No', value: false, desc: 'Partially or fully dismantled' }
+            ], userInputs.is_built));
+
+            // Box/Instructions (Converted to Swatch)
+            container.append('<label class="tee-question-label">Additional Details</label>');
+            var detailVal = 'none';
+            if (userInputs.has_box && userInputs.has_instructions) detailVal = 'both';
+            else if (userInputs.has_box) detailVal = 'box';
+            else if (userInputs.has_instructions) detailVal = 'ins';
+
+            container.append(renderSwatches('details_combo', [
+                { label: 'Box & Instructions', value: 'both' },
+                { label: 'Box Only', value: 'box' },
+                { label: 'Instructions Only', value: 'ins' },
+                { label: 'Neither', value: 'none' }
+            ], detailVal));
         } else {
-            $('#tee-minifigs-ui').fadeOut();
-            if (userInputs.has_minifigs) {
-                userInputs.missing_minifigs = []; // Reset if they check the toggle back
-            }
+            // Under 95%: Weight
+            var qWeight = $('<div class="tee-question-item">' +
+                '<label class="tee-question-label">Enter the weight of the set (grams)</label>' +
+                '<input type="number" id="tee-weight-input" class="tee-input" value="' + userInputs.weight + '">' +
+                '</div>');
+            container.append(qWeight);
         }
 
+        bindDynamicEvents();
+    }
+
+    function renderDynamicFlow() {
+        var container = $('#tee-dynamic-questions');
+        container.empty();
+
+        if (userInputs.condition === 'new') {
+            renderNewFlow(container);
+        } else {
+            renderUsedFlow(container);
+        }
+
+        updateMinifigsUI();
         calculateOffer();
     }
 
-    function renderMinifigs() {
-        var container = $('#tee-minifigs-list');
-        // Check if we already rendered THIS set
-        if (container.data('rendered-set') === setData.id) return;
+    function bindDynamicEvents() {
+        // Swatch Clicks
+        $('.tee-swatch').off('click').on('click', function () {
+            var group = $(this).closest('.tee-swatch-group');
+            var field = group.data('field');
+            var val = $(this).data('value');
 
-        container.empty();
-        container.data('rendered-set', setData.id);
-        $.each(setData.minifigs_data, function (id, minifig) {
-            var item = $('<div class="minifig-item">' +
-                '<img src="' + minifig.thumbnail + '" alt="' + minifig.name + '">' +
-                '<strong>' + minifig.name + '</strong><br>' +
-                '<label><input type="checkbox" class="minifig-check" value="' + id + '" checked> I have this</label>' +
-                '</div>');
-            container.append(item);
+            // Handle boolean strings
+            if (val === true || val === 'true') val = true;
+            if (val === false || val === 'false') val = false;
+
+            if (field === 'details_combo') {
+                userInputs.has_box = (val === 'both' || val === 'box');
+                userInputs.has_instructions = (val === 'both' || val === 'ins');
+            } else {
+                userInputs[field] = val;
+            }
+
+            renderDynamicFlow();
         });
 
-        $('.minifig-check').on('change', function () {
-            userInputs.missing_minifigs = [];
-            $('.minifig-check:not(:checked)').each(function () {
-                userInputs.missing_minifigs.push($(this).val());
-            });
+
+        $('#tee-weight-input').on('change keyup', function () {
+            userInputs.weight = parseFloat($(this).val()) || 0;
             calculateOffer();
         });
     }
 
+    function updateMinifigsUI() {
+        if (userInputs.condition === 'new' && userInputs.seals_intact) {
+            $('#tee-minifigs-ui').hide();
+        } else {
+            if (Object.keys(setData.minifigs_data).length > 0) {
+                $('#minifig-instruction-text').text(userInputs.completion_level === 'less' ? 'Which minifigures are present?' : 'Please verify which minifigures are present (unchecked = missing):');
+                renderMinifigs();
+                $('#tee-minifigs-ui').fadeIn();
+            } else {
+                $('#tee-minifigs-ui').hide();
+            }
+        }
+    }
+
+    function renderMinifigs() {
+        var container = $('#tee-minifigs-list');
+        if (container.data('rendered-set') === setData.id) return;
+
+        container.empty();
+        container.data('rendered-set', setData.id);
+
+        $.each(setData.minifigs_data, function (id, minifig) {
+            var qtyOwned = minifig.qty;
+            var item = $('<div class="minifig-item" data-id="' + id + '" data-max="' + minifig.qty + '">' +
+                '<img src="' + minifig.thumbnail + '" alt="' + minifig.name + '">' +
+                '<strong>' + minifig.name + '</strong><br>' +
+                '<div class="qty-selector">' +
+                '<button type="button" class="qty-btn minus">-</button>' +
+                '<span class="qty-val">' + qtyOwned + '</span> / ' + minifig.qty +
+                '<button type="button" class="qty-btn plus">+</button>' +
+                '</div>' +
+                '<p class="minifig-status">I have all of these</p>' +
+                '</div>');
+            container.append(item);
+        });
+
+        $('.qty-btn').off('click').on('click', function () {
+            var item = $(this).closest('.minifig-item');
+            var id = item.data('id');
+            var max = parseInt(item.data('max'));
+            var valSpan = item.find('.qty-val');
+            var current = parseInt(valSpan.text());
+
+            if ($(this).hasClass('plus') && current < max) current++;
+            else if ($(this).hasClass('minus') && current > 0) current--;
+
+            valSpan.text(current);
+            var status = item.find('.minifig-status');
+            if (current === max) {
+                status.text('I have all of these').css('color', '');
+                delete userInputs.missing_minifigs[id];
+            } else {
+                var missing = max - current;
+                status.text(current === 0 ? 'I am missing all' : 'I am missing ' + missing).css('color', current === 0 ? '#ef4444' : '#f59e0b');
+                userInputs.missing_minifigs[id] = missing;
+            }
+            calculateOffer();
+        });
+    }
+
+    // 3. Calculation & Results
     function calculateOffer() {
         if (!setData) return;
 
-        // Show loader
         $('#tee-final-price').html('<span class="tee-calc-loader"></span>');
-        $('#tee-add-to-cart').prop('disabled', true);
-
-        // Map UI inputs to what the backend expects
-        var payload_inputs = $.extend({}, userInputs);
-
-        // Final completeness check: if they have the toggle ON, it's complete. 
-        // If OFF, it's only complete if they checked every box in the list.
-        var hasAllMinifigs = userInputs.has_minifigs || (userInputs.missing_minifigs.length === 0);
-
-        payload_inputs.is_complete = userInputs.is_complete;
-        payload_inputs.has_minifigs = hasAllMinifigs;
+        $('#tee-accept-set').prop('disabled', true);
 
         $.ajax({
             url: tee_vars.ajax_url,
@@ -185,114 +290,223 @@ jQuery(document).ready(function ($) {
                 action: 'tee_calculate_offer',
                 nonce: tee_vars.nonce,
                 set_data: setData,
-                user_inputs: payload_inputs
+                user_inputs: userInputs
             },
             success: function (response) {
-                $('#tee-add-to-cart').prop('disabled', false);
+                $('#tee-accept-set').prop('disabled', false);
                 if (response.success) {
-                    updateResultBanner(response.data);
+                    var data = response.data;
+                    if (data.rejected) {
+                        $('#tee-final-price').text('£0.00');
+                        $('#tee-accept-set').hide();
+                        $('#tee-rejection-msg').show();
+                        $('#tee-rejection-btn').attr('href', data.rejection_url);
+                    } else {
+                        var rawOffer = data.offer || '0.00';
+                        var formatter = new Intl.NumberFormat('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        var formattedOffer = formatter.format(parseFloat(rawOffer));
+
+                        $('#tee-final-price').text('£' + formattedOffer);
+                        $('#tee-rejection-msg').hide();
+
+                        // Weight limit check
+                        var currentTotalWeight = 0;
+                        agreementList.forEach(function (i) {
+                            currentTotalWeight += parseFloat(i.weight) || 0;
+                        });
+                        var incomingWeight = parseFloat(userInputs.weight) || 0;
+
+                        if (currentTotalWeight + incomingWeight > 18000) {
+                            $('#tee-accept-set').hide();
+                            $('#tee-weight-error-msg').show();
+                        } else {
+                            $('#tee-accept-set').show();
+                            $('#tee-weight-error-msg').hide();
+                            updateStickyBar(rawOffer);
+                        }
+                    }
+                    updateResultBanner(data.offer);
                 }
             }
         });
     }
 
-    function updateResultBanner(data) {
+    function updateResultBanner(price) {
         $('#tee-res-name').text(setData.name);
         $('#tee-res-id').text('Set #' + setData.id);
-        $('#tee-final-price').text('£' + data.offer);
 
-        // Tags
-        var tagsContainer = $('#tee-res-tags');
-        tagsContainer.empty();
+        var tagsContainer = $('#tee-res-tags').empty();
+        tagsContainer.append('<span class="tee-tag">' + (userInputs.condition === 'new' ? 'New' : 'Used') + '</span>');
 
-        var condLabels = { 'new_sealed': 'New Sealed', 'new_open': 'New Opened', 'used': 'Used' };
-        tagsContainer.append('<span class="tee-tag">' + condLabels[userInputs.condition] + '</span>');
-
-        var totalMinifigs = Object.keys(setData.minifigs_data).length;
-        var hasAllMinifigs = totalMinifigs === 0 || userInputs.missing_minifigs.length === 0;
-
-        if (userInputs.is_complete && hasAllMinifigs) tagsContainer.append('<span class="tee-tag">All Parts</span>');
-        if (hasAllMinifigs && totalMinifigs > 0) tagsContainer.append('<span class="tee-tag">Minifigures</span>');
-        if (userInputs.has_box) tagsContainer.append('<span class="tee-tag">Box</span>');
-        if (userInputs.has_instructions) tagsContainer.append('<span class="tee-tag">Instructions</span>');
-        if (userInputs.condition === 'used' && userInputs.is_assembled) tagsContainer.append('<span class="tee-tag">Assembled</span>');
-
-        // Calc text
-        var pct = getTierPercentage();
+        if (userInputs.condition === 'new') {
+            tagsContainer.append('<span class="tee-tag">' + (userInputs.seals_intact ? 'Seals Intact' : 'Seals Broken') + '</span>');
+        } else {
+            tagsContainer.append('<span class="tee-tag">' + userInputs.completion_level + '% Complete</span>');
+        }
 
         $('#tee-result-ui').fadeIn();
     }
 
-    function getTierPercentage() {
-        // Simplified frontend pct display (ideally should come from backend response)
-        // This is just for the UI text "x 40%"
-        return 40;
+    function updateStickyBar(currentOffer) {
+        var total = 0;
+        var totalWeight = 0;
+        agreementList.forEach(function (item) {
+            total += parseFloat(item.offer) || 0;
+            totalWeight += parseFloat(item.weight) || 0;
+        });
+
+        var currentVal = parseFloat(currentOffer) || 0;
+        var formatter = new Intl.NumberFormat('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        $('#tee-sticky-current').text('£' + formatter.format(currentVal));
+        $('#tee-sticky-total').text('£' + formatter.format(total));
+        $('#tee-sticky-bar').fadeIn();
+
+        if (totalWeight >= 18000) { // 18KG in grams
+            $('#tee-weight-limit-msg').show();
+            $('#tee-accept-set').hide();
+            $('#tee-weight-error-msg').show();
+        } else {
+            $('#tee-weight-limit-msg').hide();
+        }
     }
 
-    // Final Add to Cart
-    $('#tee-add-to-cart').on('click', function () {
-        var priceStr = $('#tee-final-price').text().replace('£', '');
-        var price = parseFloat(priceStr);
-        var product_id = tee_vars.product_id;
+    // 4. Batch Agreement List
+    $('#tee-accept-set').on('click', function () {
+        var offerText = $('#tee-final-price').text().replace('£', '').replace(/,/g, '');
+        var offer = parseFloat(offerText) || 0;
 
-        if (!product_id || product_id == 0) {
-            alert('Error: No evaluation product selected in settings.');
+        // Check weight limit before accepting (Double check for safety)
+        var currentTotalWeight = 0;
+        agreementList.forEach(function (i) {
+            currentTotalWeight += parseFloat(i.weight) || 0;
+        });
+
+        var incomingWeight = parseFloat(userInputs.weight) || 0;
+        if (currentTotalWeight + incomingWeight > 18000) {
+            $('#tee-accept-set').hide();
+            $('#tee-weight-error-msg').show();
             return;
         }
 
-        if (price <= 0) {
-            alert('Error: Evaluation result is £0.00.');
+        agreementList.push({
+            id: setData.id,
+            name: setData.name,
+            offer: offer,
+            weight: userInputs.weight,
+            image: setData.image,
+            metadata: getMetadataString()
+        });
+
+        renderAgreementList();
+        $('#tee-main-ui, #tee-result-ui, #tee-minifigs-ui, #tee-set-preview').hide();
+        $('#tee-set-number').val('').focus();
+        updateStickyBar(0);
+    });
+
+    function getMetadataString() {
+        var parts = [];
+        parts.push(userInputs.condition.toUpperCase());
+        if (userInputs.condition === 'new') {
+            parts.push(userInputs.seals_intact ? 'Seals Intact' : 'Seals Broken');
+            if (userInputs.seals_intact) parts.push('Box: ' + userInputs.box_condition);
+        } else {
+            parts.push('Completion: ' + userInputs.completion_level + '%');
+        }
+
+        var missing = Object.keys(userInputs.missing_minifigs).length;
+        if (missing > 0) parts.push('Missing ' + missing + ' Minifigs');
+
+        return parts.join(' | ');
+    }
+
+    function renderAgreementList() {
+        var container = $('#tee-agreement-items').empty();
+        var total = 0;
+        var totalWeight = 0;
+        var formatter = new Intl.NumberFormat('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        agreementList.forEach(function (item, index) {
+            total += parseFloat(item.offer) || 0;
+            totalWeight += parseFloat(item.weight) || 0;
+
+            var el = $('<div class="tee-agreement-item">' +
+                '<div class="tee-item-info">' +
+                '<strong>' + item.name + ' (#' + item.id + ')</strong>' +
+                '<span>' + item.metadata + ' | ' + item.weight + 'g</span>' +
+                '</div>' +
+                '<div style="display:flex; align-items:center;">' +
+                '<span class="tee-item-price">£' + formatter.format(item.offer) + '</span>' +
+                '<button type="button" class="tee-remove-item" data-index="' + index + '">×</button>' +
+                '</div>' +
+                '</div>');
+            container.append(el);
+        });
+
+        $('#tee-agreement-total').text('£' + formatter.format(total));
+        $('#tee-agreement-weight').text((totalWeight / 1000).toFixed(2));
+
+        if (agreementList.length > 0) {
+            $('#tee-agreement-list-wrap').fadeIn();
+        } else {
+            $('#tee-agreement-list-wrap').hide();
+            $('#tee-sticky-bar').hide();
+        }
+
+        $('.tee-remove-item').on('click', function () {
+            var idx = $(this).data('index');
+            agreementList.splice(idx, 1);
+            renderAgreementList();
+            updateStickyBar(0);
+        });
+    }
+
+    // 5. Final Add to Basket
+    $('#tee-add-all-to-cart').on('click', function () {
+        if (agreementList.length === 0) return;
+
+        var totalWeight = 0;
+        agreementList.forEach(function (i) {
+            totalWeight += parseFloat(i.weight) || 0;
+        });
+
+        if (totalWeight > 18000) {
+            alert('Cannot checkout: Total weight exceeds 18KG. Please remove some items.');
             return;
         }
 
-        $(this).prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> Adding...');
+        $(this).prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span> Adding all to basket...');
 
+        // Serial process adding to cart since WC AJAX isn't great with parallel identical product adds
+        addBatchToCart(0);
+    });
+
+    function addBatchToCart(index) {
+        if (index >= agreementList.length) {
+            window.location.href = tee_vars.cart_url || '/cart/';
+            return;
+        }
+
+        var item = agreementList[index];
         $.ajax({
             url: tee_vars.ajax_url,
             type: 'POST',
             data: {
                 action: 'tee_add_to_cart',
                 nonce: tee_vars.nonce,
-                product_id: product_id,
-                price: price,
+                product_id: tee_vars.product_id,
+                price: item.offer,
                 metadata: {
-                    'Set': setData.name + ' (' + setData.id + ')',
-                    'Condition': userInputs.condition.replace('_', ' '),
-                    'Details': (function () {
-                        var parts = [];
-                        if (!userInputs.is_complete) parts.push('Missing Parts');
-                        if (!userInputs.has_box) parts.push('No Box');
-                        if (!userInputs.has_instructions) parts.push('No Instructions');
-
-                        var totalMinifigs = Object.keys(setData.minifigs_data).length;
-                        var hasAllMinifigs = totalMinifigs === 0 || userInputs.missing_minifigs.length === 0;
-
-                        if (userInputs.missing_minifigs.length > 0) {
-                            var names = [];
-                            $.each(userInputs.missing_minifigs, function (i, id) {
-                                if (setData.minifigs_data[id]) {
-                                    names.push(setData.minifigs_data[id].name);
-                                }
-                            });
-                            parts.push('Missing Minifigs: ' + names.join(', '));
-                        } else if (!hasAllMinifigs) {
-                            parts.push('Missing All Minifigures');
-                        }
-
-                        return parts.join(' | ') || 'Complete';
-                    })(),
-                    'Weight': setData.weight + 'g',
-                    'image': setData.image
+                    'Set': item.name + ' (' + item.id + ')',
+                    'Details': item.metadata,
+                    'Weight': item.weight + 'g',
+                    'image': item.image
                 }
             },
-            success: function (response) {
-                if (response.success) {
-                    window.location.href = response.data.redirect;
-                } else {
-                    alert(response.data);
-                    $('#tee-add-to-cart').prop('disabled', false).html('<span class="dashicons dashicons-cart"></span> Add to Cart');
-                }
+            success: function () {
+                addBatchToCart(index + 1);
             }
         });
-    });
+    }
 });
+

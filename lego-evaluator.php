@@ -3,8 +3,8 @@
  * Plugin Name: Toy Exchange LEGO Evaluator
  * Plugin URI: https://toy-exchange.co.uk/
  * Description: Custom tool to evaluate LEGO sets using Bricklink API and add to WooCommerce cart.
- * Author: Antigravity
- * Version: 1.0.0
+ * Author: Muhammad Usama
+ * Version: 1.1.0
  * Text Domain: toy-exchange-evaluator
  * Requires at least: 5.8
  * Requires PHP: 7.4
@@ -63,7 +63,8 @@ class ToyExchangeEvaluator {
         wp_localize_script( 'tee-frontend-ui', 'tee_vars', array(
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'tee_nonce' ),
-            'product_id' => get_option( 'tee_default_product_id' )
+            'product_id' => get_option( 'tee_default_product_id' ),
+            'cart_url'   => function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : ''
         ) );
     }
 
@@ -173,15 +174,19 @@ class ToyExchangeEvaluator {
                         if ( $entry['item']['type'] === 'MINIFIG' ) {
                             $m_no = $entry['item']['no'];
                             $m_price_data = $api->get_price_guide( $m_no, 'U', 'MINIFIG' );
-                            $m_price = ! is_wp_error( $m_price_data ) && isset( $m_price_data['avg_price'] ) ? (float)$m_price_data['avg_price'] : 0;
-                            
+                        $m_price = ! is_wp_error( $m_price_data ) && isset( $m_price_data['avg_price'] ) ? (float)$m_price_data['avg_price'] : 0;
+                        
+                        if ( isset( $minifigs[$m_no] ) ) {
+                            $minifigs[$m_no]['qty'] += (int)$entry['quantity'];
+                        } else {
                             $minifigs[$m_no] = array(
                                 'no'    => $m_no,
                                 'name'  => $entry['item']['name'],
-                                'qty'   => $entry['quantity'],
+                                'qty'   => (int)$entry['quantity'],
                                 'price' => $m_price,
                                 'thumbnail' => "https://img.bricklink.com/ItemImage/ML/{$m_no}.png"
                             );
+                        }
                             $minifigs_total_value += ($m_price * $entry['quantity']);
                         }
                     }
@@ -225,10 +230,14 @@ class ToyExchangeEvaluator {
         }
         
         $evaluator = new TEE_Evaluator_Logic();
-        $offer = $evaluator->calculate_offer( $set_data, $user_inputs );
+        $calc_result = $evaluator->calculate_offer( $set_data, $user_inputs );
         
+        if ( is_array( $calc_result ) && isset( $calc_result['rejected'] ) ) {
+            wp_send_json_success( $calc_result );
+        }
+
         wp_send_json_success( array( 
-            'offer' => number_format( $offer, 2 ),
+            'offer' => number_format( $calc_result, 2, '.', '' ),
             'weight' => $set_data['weight']
         ) );
     }

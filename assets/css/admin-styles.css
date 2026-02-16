@@ -28,3 +28,62 @@
 .tee-admin-wrap .remove-rule:hover {
     color: #f00;
 }
+
+/* Tooltip Styles */
+.tee-tooltip {
+    position: relative;
+    display: inline-block;
+    margin-left: 5px;
+    vertical-align: middle;
+    cursor: help;
+    color: #007cba;
+}
+
+.tee-tooltip .dashicons {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+}
+
+.tee-tooltip .tee-tooltip-text {
+    visibility: hidden;
+    width: 250px;
+    background-color: #32373c;
+    color: #fff;
+    text-align: left;
+    border-radius: 4px;
+    padding: 10px;
+    position: absolute;
+    z-index: 9999;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -125px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: normal;
+    text-transform: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.tee-tooltip .tee-tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #32373c transparent transparent transparent;
+}
+
+.tee-tooltip:hover .tee-tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Ensure tooltips don't get cut off in tables */
+.form-table th {
+    overflow: visible !important;
+}
