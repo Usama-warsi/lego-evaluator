@@ -346,7 +346,7 @@ function tee_add_evaluation_to_order_items( $item, $cart_item_key, $values, $ord
 
 /**
  * Override cart item thumbnail with LEGO Set image
- */
+ */  
 add_filter( 'woocommerce_cart_item_thumbnail', 'tee_override_cart_item_thumbnail', 10, 3 );
 function tee_override_cart_item_thumbnail( $thumbnail, $cart_item, $cart_item_key ) {
     if ( isset( $cart_item['tee_evaluation']['image'] ) && ! empty( $cart_item['tee_evaluation']['image'] ) ) {
