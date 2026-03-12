@@ -340,8 +340,28 @@ jQuery(document).ready(function ($) {
 
         if (userInputs.condition === 'new') {
             tagsContainer.append('<span class="tee-tag">' + (userInputs.seals_intact ? 'Seals Intact' : 'Seals Broken') + '</span>');
+            if (userInputs.seals_intact) {
+                var boxLabel = userInputs.box_condition.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                tagsContainer.append('<span class="tee-tag">Box: ' + boxLabel + '</span>');
+            } else {
+                tagsContainer.append('<span class="tee-tag">' + (userInputs.is_complete ? 'Complete' : 'Incomplete') + '</span>');
+                if (!userInputs.is_complete && userInputs.weight > 0) {
+                    tagsContainer.append('<span class="tee-tag">' + userInputs.weight + 'g</span>');
+                }
+            }
         } else {
-            tagsContainer.append('<span class="tee-tag">' + userInputs.completion_level + '% Complete</span>');
+            var compLabel = userInputs.completion_level === '100' ? '100% Complete' : (userInputs.completion_level === '95' ? 'Over 95%' : 'Under 95%');
+            tagsContainer.append('<span class="tee-tag">' + compLabel + '</span>');
+            
+            if (userInputs.completion_level !== 'less') {
+                tagsContainer.append('<span class="tee-tag">' + (userInputs.is_built ? 'Built' : 'Dismantled') + '</span>');
+                if (userInputs.has_box && userInputs.has_instructions) tagsContainer.append('<span class="tee-tag">Box & Ins</span>');
+                else if (userInputs.has_box) tagsContainer.append('<span class="tee-tag">Box Only</span>');
+                else if (userInputs.has_instructions) tagsContainer.append('<span class="tee-tag">Ins Only</span>');
+                else tagsContainer.append('<span class="tee-tag">No Box/Ins</span>');
+            } else if (userInputs.weight > 0) {
+                tagsContainer.append('<span class="tee-tag">' + userInputs.weight + 'g</span>');
+            }
         }
 
         $('#tee-result-ui').fadeIn();
@@ -409,9 +429,22 @@ jQuery(document).ready(function ($) {
         parts.push(userInputs.condition.toUpperCase());
         if (userInputs.condition === 'new') {
             parts.push(userInputs.seals_intact ? 'Seals Intact' : 'Seals Broken');
-            if (userInputs.seals_intact) parts.push('Box: ' + userInputs.box_condition);
+            if (userInputs.seals_intact) {
+                var boxLabel = userInputs.box_condition.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                parts.push('Box: ' + boxLabel);
+            } else {
+                parts.push(userInputs.is_complete ? 'Complete' : 'Incomplete');
+            }
         } else {
-            parts.push('Completion: ' + userInputs.completion_level + '%');
+            var compLabel = userInputs.completion_level === '100' ? '100% Complete' : (userInputs.completion_level === '95' ? 'Over 95%' : 'Under 95%');
+            parts.push('Completion: ' + compLabel);
+            if (userInputs.completion_level !== 'less') {
+                parts.push(userInputs.is_built ? 'Built' : 'Dismantled');
+                if (userInputs.has_box && userInputs.has_instructions) parts.push('Box & Ins');
+                else if (userInputs.has_box) parts.push('Box Only');
+                else if (userInputs.has_instructions) parts.push('Instructions Only');
+                else parts.push('No Box/Instructions');
+            }
         }
 
         var missing = Object.keys(userInputs.missing_minifigs).length;

@@ -306,10 +306,41 @@ function tee_override_cart_item_price( $cart ) {
     if ( is_admin() && ! defined( 'DOING_AJAX' ) ) return;
     if ( did_action( 'woocommerce_before_calculate_totals' ) >= 2 ) return;
 
+    $wc_weight_unit = get_option( 'woocommerce_weight_unit', 'kg' );
+
     foreach ( $cart->get_cart() as $cart_item_key => $cart_item ) {
         if ( isset( $cart_item['tee_evaluation']['price'] ) ) {
             $price = $cart_item['tee_evaluation']['price'];
             $cart_item['data']->set_price( $price );
+        }
+
+        // Set product weight from LEGO evaluation data so shipping plugins see the correct weight.
+        // Weight is stored as e.g. "1500g" (grams from BrickLink API).
+        if ( isset( $cart_item['tee_evaluation']['details']['Weight'] ) ) {
+            $weight_str = $cart_item['tee_evaluation']['details']['Weight'];
+            // Extract numeric value (removes 'g' suffix or any other non-numeric characters)
+            $weight_grams = floatval( preg_replace( '/[^0-9.]/', '', $weight_str ) );
+
+            // Convert grams to the WooCommerce store weight unit
+            switch ( $wc_weight_unit ) {
+                case 'kg':
+                    $weight_converted = $weight_grams / 1000;
+                    break;
+                case 'lbs':
+                    $weight_converted = $weight_grams / 453.59237;
+                    break;
+                case 'oz':
+                    $weight_converted = $weight_grams / 28.3495;
+                    break;
+                case 'g':
+                default:
+                    $weight_converted = $weight_grams;
+                    break;
+            }
+
+            if ( $weight_converted > 0 ) {
+                $cart_item['data']->set_weight( $weight_converted );
+            }
         }
     }
 }
@@ -341,8 +372,69 @@ function tee_add_evaluation_to_order_items( $item, $cart_item_key, $values, $ord
             if ( $label === 'image' ) continue; // Don't add image URL as text meta
             $item->add_meta_data( $label, $value );
         }
+
+        // Save the image URL as hidden meta for admin display
+        if ( isset( $values['tee_evaluation']['image'] ) && ! empty( $values['tee_evaluation']['image'] ) ) {
+            $item->add_meta_data( '_tee_image_url', $values['tee_evaluation']['image'], true );
+        }
+
+        // Also save the raw weight in grams as a hidden meta for shipping plugins to use.
+        if ( isset( $values['tee_evaluation']['details']['Weight'] ) ) {
+            $weight_str   = $values['tee_evaluation']['details']['Weight'];
+            $weight_grams = floatval( preg_replace( '/[^0-9.]/', '', $weight_str ) );
+            if ( $weight_grams > 0 ) {
+                $item->add_meta_data( '_tee_weight_grams', $weight_grams, true );
+            }
+        }
     }
 }
+
+/**
+ * Override the product weight on order items so shipping plugins (e.g. EasyPost)
+ * see the correct LEGO set weight instead of the generic shell product's weight (0).
+ *
+ * The weight is stored in grams in the '_tee_weight_grams' order item meta.
+ * We convert it to the WooCommerce store weight unit before setting it on the product.
+ */
+add_filter( 'woocommerce_order_item_product', 'tee_override_order_item_product_weight', 10, 2 );
+function tee_override_order_item_product_weight( $product, $item ) {
+    if ( ! $product || ! is_a( $item, 'WC_Order_Item_Product' ) ) {
+        return $product;
+    }
+
+    // Only act on items that have LEGO evaluation weight stored.
+    $weight_grams = $item->get_meta( '_tee_weight_grams', true );
+    if ( ! $weight_grams ) {
+        // Fallback: try to parse from the displayed 'Weight' meta (e.g. "2081g").
+        $weight_str = $item->get_meta( 'Weight', true );
+        if ( $weight_str ) {
+            $weight_grams = floatval( preg_replace( '/[^0-9.]/', '', $weight_str ) );
+        }
+    }
+
+    if ( $weight_grams > 0 ) {
+        $wc_weight_unit = get_option( 'woocommerce_weight_unit', 'kg' );
+        switch ( $wc_weight_unit ) {
+            case 'kg':
+                $weight_converted = $weight_grams / 1000;
+                break;
+            case 'lbs':
+                $weight_converted = $weight_grams / 453.59237;
+                break;
+            case 'oz':
+                $weight_converted = $weight_grams / 28.3495;
+                break;
+            case 'g':
+            default:
+                $weight_converted = $weight_grams;
+                break;
+        }
+        $product->set_weight( $weight_converted );
+    }
+
+    return $product;
+}
+
 
 /**
  * Override cart item thumbnail with LEGO Set image
@@ -351,6 +443,18 @@ add_filter( 'woocommerce_cart_item_thumbnail', 'tee_override_cart_item_thumbnail
 function tee_override_cart_item_thumbnail( $thumbnail, $cart_item, $cart_item_key ) {
     if ( isset( $cart_item['tee_evaluation']['image'] ) && ! empty( $cart_item['tee_evaluation']['image'] ) ) {
         return '<img src="' . esc_url( $cart_item['tee_evaluation']['image'] ) . '" class="attachment-woocommerce_thumbnail size-woocommerce_thumbnail" alt="LEGO Set" style="width:60px; height:auto;">';
+    }
+    return $thumbnail;
+}
+
+/**
+ * Override the product thumbnail in the admin order area with LEGO Set image
+ */
+add_filter( 'woocommerce_admin_order_item_thumbnail', 'tee_override_admin_order_item_thumbnail', 10, 3 );
+function tee_override_admin_order_item_thumbnail( $thumbnail, $item_id, $item ) {
+    $image_url = $item->get_meta( '_tee_image_url', true );
+    if ( $image_url ) {
+        return '<img src="' . esc_url( $image_url ) . '" class="attachment-thumbnail size-thumbnail" alt="LEGO Set" style="width:60px; height:auto;">';
     }
     return $thumbnail;
 }
