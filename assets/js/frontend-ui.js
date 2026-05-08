@@ -4,14 +4,38 @@ jQuery(document).ready(function ($) {
     var agreementList = [];
     var userInputs = {};
 
+    // Acceptance helpers — read toggles localised from PHP
+    var _acc = (tee_vars.acceptance) ? tee_vars.acceptance : { new_sealed: true, new_open: true, used_100: true, used_95: true, used_mixed: true };
+
+    function getDefaultCondition() {
+        if (_acc.used_100 || _acc.used_95 || _acc.used_mixed) return 'used';
+        if (_acc.new_sealed || _acc.new_open) return 'new';
+        return 'used';
+    }
+    function getDefaultCompletion() {
+        if (_acc.used_100)   return '100';
+        if (_acc.used_95)    return '95';
+        if (_acc.used_mixed) return 'less';
+        return '100';
+    }
+    function getDefaultSeals() {
+        return !!_acc.new_sealed;
+    }
+    function initConditionCards() {
+        var newEnabled  = _acc.new_sealed || _acc.new_open;
+        var usedEnabled = _acc.used_100 || _acc.used_95 || _acc.used_mixed;
+        $('.tee-cond-card[data-cond="new"]').toggle(!!newEnabled);
+        $('.tee-cond-card[data-cond="used"]').toggle(!!usedEnabled);
+    }
+
     // Initialization
     function resetSetState() {
         userInputs = {
-            condition: 'used',
-            seals_intact: true,
+            condition: getDefaultCondition(),
+            seals_intact: getDefaultSeals(),
             box_condition: 'like_new',
             is_complete: true,
-            completion_level: '100',
+            completion_level: getDefaultCompletion(),
             is_built: true,
             weight: 0,
             has_box: true,
@@ -20,6 +44,7 @@ jQuery(document).ready(function ($) {
         };
     }
     resetSetState();
+    initConditionCards();
 
     // 1. Search Logic
     $('#tee-search-set').on('click', function () {
@@ -42,7 +67,7 @@ jQuery(document).ready(function ($) {
         resetSetState();
         $('#tee-minifigs-list').empty().removeData('rendered-set');
         $('.tee-cond-card').removeClass('active');
-        $('.tee-cond-card[data-cond="used"]').addClass('active');
+        $('.tee-cond-card[data-cond="' + getDefaultCondition() + '"]').addClass('active');
 
         $.ajax({
             url: tee_vars.ajax_url,
@@ -96,12 +121,15 @@ jQuery(document).ready(function ($) {
     }
 
     function renderNewFlow(container) {
-        // Q: Seals Intact?
+        // Q: Seals Intact? — filter options to only show accepted types
+        var sealOpts = [];
+        if (_acc.new_sealed) sealOpts.push({ label: 'Yes', value: true,  desc: 'Original tape/seals unbroken' });
+        if (_acc.new_open)   sealOpts.push({ label: 'No',  value: false, desc: 'Seals cut or box opened' });
+        // If only one option is available, auto-select it
+        if (sealOpts.length === 1) userInputs.seals_intact = (sealOpts[0].value === true);
+
         container.append('<label class="tee-question-label">Are all box seals intact?</label>');
-        container.append(renderSwatches('seals_intact', [
-            { label: 'Yes', value: true, desc: 'Original tape/seals unbroken' },
-            { label: 'No', value: false, desc: 'Seals cut or box opened' }
-        ], userInputs.seals_intact));
+        container.append(renderSwatches('seals_intact', sealOpts, userInputs.seals_intact));
 
         if (userInputs.seals_intact) {
             // Seals Yes: Box Condition
@@ -133,13 +161,24 @@ jQuery(document).ready(function ($) {
     }
 
     function renderUsedFlow(container) {
-        // Q: How complete?
+        // Q: How complete? — filter options to only show accepted completion levels
+        var compOpts = [];
+        if (_acc.used_100)   compOpts.push({ label: '100% Complete', value: '100',  desc: 'Includes all minifigures' });
+        if (_acc.used_95)    compOpts.push({ label: 'Over 95%',      value: '95',   desc: 'Missing minor parts' });
+        if (_acc.used_mixed) compOpts.push({ label: 'Under 95%',     value: 'less', desc: 'Incomplete/Mixed' });
+        // If current value is no longer available, reset to first available option
+        var validVals = compOpts.map(function(o) { return o.value; });
+        if (validVals.length > 0 && validVals.indexOf(userInputs.completion_level) === -1) {
+            userInputs.completion_level = compOpts[0].value;
+        }
+
+        // Show estimated-price notice if BrickLink had no used data
+        if (setData && setData.prices && setData.prices.used_price_estimated) {
+            container.append('<p class="tee-notice" style="font-size:0.85em;color:#f59e0b;margin:0 0 8px;">No used sold data found on BrickLink — used price is estimated at ' + Math.round((setData.prices.used_avg / setData.prices.new_avg) * 100) + '% of new price.</p>');
+        }
+
         container.append('<label class="tee-question-label">How complete is the set?</label>');
-        container.append(renderSwatches('completion_level', [
-            { label: '100% Complete', value: '100', desc: 'Includes all minifigures' },
-            { label: 'Over 95%', value: '95', desc: 'Missing minor parts' },
-            { label: 'Under 95%', value: 'less', desc: 'Incomplete/Mixed' }
-        ], userInputs.completion_level));
+        container.append(renderSwatches('completion_level', compOpts, userInputs.completion_level));
 
         if (userInputs.completion_level !== 'less') {
             // Built?

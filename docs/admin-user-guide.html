@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEGO Evaluator — Admin User Guide</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 1.7; color: #1a1a2e; background: #f4f6fb; }
+
+  /* Layout */
+  .page-wrap { display: flex; min-height: 100vh; }
+  nav { width: 260px; min-width: 260px; background: #1a1a2e; color: #c8cfe8; position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 0 0 40px; }
+  nav .nav-logo { padding: 28px 24px 20px; border-bottom: 1px solid #2d3056; }
+  nav .nav-logo h2 { color: #fff; font-size: 15px; font-weight: 700; line-height: 1.3; }
+  nav .nav-logo span { font-size: 11px; color: #7e8aaf; text-transform: uppercase; letter-spacing: .08em; }
+  nav ul { list-style: none; padding: 12px 0; }
+  nav ul li a { display: block; padding: 8px 24px; font-size: 13.5px; color: #c8cfe8; text-decoration: none; border-left: 3px solid transparent; transition: all .15s; }
+  nav ul li a:hover { background: #252847; color: #fff; border-left-color: #4f8ef7; }
+  nav ul li a.active { background: #252847; color: #4f8ef7; border-left-color: #4f8ef7; }
+  nav ul li.section-head { padding: 18px 24px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #4a5278; }
+
+  main { flex: 1; padding: 40px 48px 80px; max-width: 960px; }
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #252847 100%); color: #fff; border-radius: 14px; padding: 40px 44px; margin-bottom: 48px; }
+  .hero .badge { display: inline-block; background: #4f8ef7; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px; }
+  .hero h1 { font-size: 32px; font-weight: 800; margin-bottom: 10px; }
+  .hero p { color: #9fb3d8; font-size: 16px; max-width: 520px; }
+
+  /* Sections */
+  section { margin-bottom: 52px; scroll-margin-top: 30px; }
+  h2 { font-size: 22px; font-weight: 700; color: #1a1a2e; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 2px solid #e5e9f2; }
+  h3 { font-size: 16px; font-weight: 700; color: #252847; margin: 24px 0 10px; }
+  h4 { font-size: 14px; font-weight: 700; color: #3a4060; margin: 18px 0 8px; }
+  p { margin-bottom: 12px; color: #3a4060; }
+
+  /* Cards */
+  .card { background: #fff; border: 1px solid #e5e9f2; border-radius: 10px; padding: 24px 28px; margin-bottom: 18px; }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+  @media (max-width: 700px) { .card-grid { grid-template-columns: 1fr; } }
+
+  /* Steps */
+  .steps { counter-reset: step; }
+  .step { display: flex; gap: 18px; margin-bottom: 22px; }
+  .step-num { flex-shrink: 0; width: 34px; height: 34px; background: #4f8ef7; color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; }
+  .step-body { flex: 1; padding-top: 4px; }
+  .step-body strong { display: block; font-size: 15px; color: #1a1a2e; margin-bottom: 4px; }
+
+  /* Notices */
+  .notice { border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; font-size: 14px; display: flex; gap: 12px; align-items: flex-start; }
+  .notice .icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+  .notice.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+  .notice.warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .notice.success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; }
+  .notice.danger { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-bottom: 20px; }
+  thead th { background: #f1f3fb; font-weight: 700; text-align: left; padding: 10px 14px; border: 1px solid #e5e9f2; color: #252847; }
+  tbody td { padding: 9px 14px; border: 1px solid #e5e9f2; vertical-align: top; }
+  tbody tr:nth-child(even) td { background: #fafbff; }
+
+  /* Example boxes */
+  .example { background: #f8faff; border: 1px solid #d1d9f0; border-left: 4px solid #4f8ef7; border-radius: 6px; padding: 16px 20px; margin: 14px 0 18px; font-size: 13.5px; }
+  .example .ex-title { font-weight: 700; color: #1e3a8a; margin-bottom: 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; }
+
+  /* Code */
+  code { background: #f1f3fb; border: 1px solid #dde2ef; padding: 2px 6px; border-radius: 4px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px; color: #c0392b; }
+  pre { background: #1e2235; color: #c8d3f5; border-radius: 8px; padding: 18px 22px; overflow-x: auto; font-size: 13px; line-height: 1.6; margin: 12px 0 18px; font-family: 'SFMono-Regular', Consolas, monospace; }
+
+  /* Toggle demo */
+  .toggle-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #f0f2fa; }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-indicator { width: 42px; height: 22px; border-radius: 11px; display: flex; align-items: center; padding: 3px; flex-shrink: 0; }
+  .toggle-indicator.on { background: #10b981; justify-content: flex-end; }
+  .toggle-indicator.off { background: #d1d5db; justify-content: flex-start; }
+  .toggle-indicator .knob { width: 16px; height: 16px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+  .toggle-label { font-weight: 600; color: #1a1a2e; font-size: 14px; }
+  .toggle-status { font-size: 12px; margin-left: auto; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+  .toggle-status.on { background: #d1fae5; color: #065f46; }
+  .toggle-status.off { background: #f3f4f6; color: #6b7280; }
+
+  /* Pricing example */
+  .calc-box { background: #f8faff; border: 1px solid #d1d9f0; border-radius: 8px; padding: 20px 24px; margin: 14px 0; }
+  .calc-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 14px; color: #4a5278; border-bottom: 1px dashed #e5e9f2; }
+  .calc-row:last-child { border-bottom: none; font-weight: 700; color: #1a1a2e; font-size: 15px; padding-top: 10px; margin-top: 4px; border-top: 2px solid #c7d2ed; }
+  .calc-row span:last-child { font-weight: 600; }
+
+  /* Screenshot mockup */
+  .mockup { background: #fff; border: 1px solid #dde2ef; border-radius: 10px; overflow: hidden; margin: 18px 0; box-shadow: 0 4px 16px rgba(0,0,0,.07); }
+  .mockup-bar { background: #f1f3fb; border-bottom: 1px solid #e5e9f2; padding: 10px 16px; display: flex; align-items: center; gap: 8px; }
+  .mockup-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .mockup-body { padding: 20px 24px; }
+
+  /* Tab mockup */
+  .tab-bar { display: flex; gap: 0; border-bottom: 2px solid #e5e9f2; margin-bottom: 20px; }
+  .tab { padding: 8px 18px; font-size: 13px; font-weight: 600; color: #6b7280; cursor: default; border-bottom: 2px solid transparent; margin-bottom: -2px; }
+  .tab.active { color: #4f8ef7; border-bottom-color: #4f8ef7; }
+
+  /* Shortcode */
+  .shortcode-box { background: #1e2235; color: #a5f3fc; border-radius: 8px; padding: 14px 20px; font-family: monospace; font-size: 15px; display: inline-block; margin: 10px 0; }
+
+  ul.checklist { list-style: none; padding: 0; }
+  ul.checklist li { padding: 4px 0 4px 24px; position: relative; font-size: 14px; color: #3a4060; }
+  ul.checklist li::before { content: "✓"; position: absolute; left: 0; color: #10b981; font-weight: 700; }
+  ul.checklist li.cross::before { content: "✗"; color: #ef4444; }
+
+  .tag { display: inline-block; padding: 2px 9px; border-radius: 4px; font-size: 12px; font-weight: 600; margin: 2px; }
+  .tag.green { background: #d1fae5; color: #065f46; }
+  .tag.blue { background: #dbeafe; color: #1e40af; }
+  .tag.orange { background: #fef3c7; color: #92400e; }
+  .tag.red { background: #fee2e2; color: #991b1b; }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<!-- Sidebar Nav -->
+<nav>
+  <div class="nav-logo">
+    <h2>LEGO Evaluator</h2>
+    <span>Admin User Guide</span>
+  </div>
+  <ul>
+    <li class="section-head">Getting Started</li>
+    <li><a href="#installation">Installation</a></li>
+    <li><a href="#bricklink-api">Bricklink API Setup</a></li>
+    <li><a href="#product-setup">WooCommerce Product</a></li>
+
+    <li class="section-head">Settings Tabs</li>
+    <li><a href="#pricing-rules">Pricing Tier Rules</a></li>
+    <li><a href="#condition-rules">Condition Rules</a></li>
+    <li><a href="#acceptance-toggles">Acceptance Toggles</a></li>
+    <li><a href="#used-fallback">Used Price Fallback</a></li>
+    <li><a href="#ui-styling">UI Styling</a></li>
+    <li><a href="#general-settings">General Settings</a></li>
+    <li><a href="#logs">Logs Tab</a></li>
+
+    <li class="section-head">Using the Evaluator</li>
+    <li><a href="#shortcode">Adding to a Page</a></li>
+    <li><a href="#customer-flow">Customer Journey</a></li>
+    <li><a href="#cart-checkout">Cart &amp; Checkout</a></li>
+
+    <li class="section-head">Examples</li>
+    <li><a href="#example-pricing">Pricing Example</a></li>
+    <li><a href="#example-toggles">Toggle Scenarios</a></li>
+    <li><a href="#example-baseplates">Baseplates / Road Plates</a></li>
+    <li><a href="#example-no-data">No BrickLink Data</a></li>
+  </ul>
+</nav>
+
+<!-- Main Content -->
+<main>
+
+  <div class="hero">
+    <div class="badge">Admin Guide</div>
+    <h1>LEGO Evaluator<br>Admin User Guide</h1>
+    <p>Complete guide to setting up, configuring, and managing the Toy Exchange LEGO Evaluator plugin for WooCommerce.</p>
+  </div>
+
+  <!-- ═══ INSTALLATION ═══ -->
+  <section id="installation">
+    <h2>Installation</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Upload the plugin</strong>
+          Go to <em>WordPress Admin → Plugins → Add New → Upload Plugin</em>. Upload the <code>lego-evaluator.zip</code> file and click <strong>Install Now</strong>.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Activate</strong>
+          Click <strong>Activate Plugin</strong>. You will now see a <em>LEGO Evaluator</em> menu item in your WordPress admin sidebar.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Confirm WooCommerce is active</strong>
+          The plugin requires WooCommerce 5.0+. If WooCommerce is not active the cart functions will not work.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Configure API credentials</strong>
+          Navigate to <em>LEGO Evaluator → API Credentials</em> and enter your Bricklink API keys (see next section).
+        </div>
+      </div>
+    </div>
+    <div class="notice info">
+      <span class="icon">ℹ️</span>
+      <div>PHP 7.4+ and WordPress 5.8+ are required. The plugin is tested up to WooCommerce 8.x.</div>
+    </div>
+  </section>
+
+  <!-- ═══ BRICKLINK API ═══ -->
+  <section id="bricklink-api">
+    <h2>Bricklink API Setup</h2>
+    <p>The evaluator fetches live market prices and set details from the Bricklink API. You need a free Bricklink seller account to get API credentials.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Log in to Bricklink</strong>
+          Go to <code>bricklink.com</code> and log in with your store account.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Open the API consumer page</strong>
+          Navigate to <em>My BL → Settings → API Consumer Registration</em>.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Register a new consumer</strong>
+          Add your domain as the registered IP/domain. Save the <strong>Consumer Key</strong> and <strong>Consumer Secret</strong>.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Generate a token</strong>
+          On the same page, create a token and save the <strong>Token Value</strong> and <strong>Token Secret</strong>.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Enter credentials in the plugin</strong>
+          Go to <em>LEGO Evaluator → API Credentials</em> and paste all four values, then click <strong>Save Changes</strong>.
+        </div>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Field</th><th>Where to find it</th><th>Example length</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Consumer Key</strong></td><td>API Consumer Registration page</td><td>~32 characters</td></tr>
+        <tr><td><strong>Consumer Secret</strong></td><td>API Consumer Registration page</td><td>~32 characters</td></tr>
+        <tr><td><strong>Token Value</strong></td><td>Token generation section</td><td>~32 characters</td></tr>
+        <tr><td><strong>Token Secret</strong></td><td>Token generation section</td><td>~32 characters</td></tr>
+      </tbody>
+    </table>
+    <div class="notice warn">
+      <span class="icon">⚠️</span>
+      <div>If you see <em>"Bricklink API credentials missing"</em> errors in the Logs tab, double-check that all four fields are saved correctly. Trailing spaces will cause authentication failures.</div>
+    </div>
+  </section>
+
+  <!-- ═══ PRODUCT SETUP ═══ -->
+  <section id="product-setup">
+    <h2>WooCommerce Product Setup</h2>
+    <p>The evaluator adds sets to the cart as a <strong>single WooCommerce product</strong>. The price of that product is overridden with the calculated offer each time it is added. You need to create this product first.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Create a Simple Product</strong>
+          Go to <em>WooCommerce → Products → Add New</em>. Name it something like <em>"LEGO Set Evaluation"</em>. Set the price to <code>0</code> — the plugin will override it at checkout.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Publish the product</strong>
+          You can hide it from the shop by setting its <em>Catalog visibility</em> to <strong>Hidden</strong> in the product's Publish panel.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Link it in the plugin settings</strong>
+          Go to <em>LEGO Evaluator → General Settings</em> and select this product from the <strong>Evaluated Product</strong> dropdown.
+        </div>
+      </div>
+    </div>
+    <div class="notice info">
+      <span class="icon">ℹ️</span>
+      <div>Variable products are supported — the plugin automatically picks the first available variation. However, a Simple Product is recommended for simplicity.</div>
+    </div>
+  </section>
+
+  <!-- ═══ PRICING TIER RULES ═══ -->
+  <section id="pricing-rules">
+    <h2>Pricing Tier Rules</h2>
+    <p>Pricing Tiers let you pay a different percentage of market value depending on <strong>how expensive the set is</strong>. Higher-value sets can have higher or lower payout percentages based on your business model.</p>
+
+    <div class="notice info">
+      <span class="icon">ℹ️</span>
+      <div><strong>Important:</strong> The Pricing Tier percentages are the <em>starting base</em> percentages for condition deductions. The Condition Rules tab then applies further deductions on top of these. In the current version, the tier lookup is done but the actual payout percentages come from the Condition Rules tab — the tier percentages serve as a reference framework.</div>
+    </div>
+
+    <h3>How to configure tiers</h3>
+    <p>Go to <em>LEGO Evaluator → Pricing Rules</em>.</p>
+
+    <div class="card">
+      <div class="tab-bar">
+        <div class="tab active">Pricing Rules</div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Min Value (£)</th>
+            <th>Max Value (£)</th>
+            <th>New Sealed %</th>
+            <th>New Open Complete %</th>
+            <th>Used %</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>0</td><td>50</td><td>70%</td><td>55%</td><td>50%</td><td>Remove</td></tr>
+          <tr><td>50.01</td><td>150</td><td>72%</td><td>57%</td><td>52%</td><td>Remove</td></tr>
+          <tr><td>150.01</td><td>0 (no limit)</td><td>75%</td><td>60%</td><td>55%</td><td>Remove</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <table>
+      <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Min Value</strong></td><td>Minimum market price (£) for this tier to apply</td></tr>
+        <tr><td><strong>Max Value</strong></td><td>Maximum market price (£). Set to <code>0</code> for no upper limit (catch-all)</td></tr>
+        <tr><td><strong>New Sealed %</strong></td><td>Reference percentage for sealed new sets in this value range</td></tr>
+        <tr><td><strong>New Open Complete %</strong></td><td>Reference percentage for open-but-complete new sets</td></tr>
+        <tr><td><strong>Used %</strong></td><td>Reference percentage for used sets</td></tr>
+      </tbody>
+    </table>
+
+    <div class="notice warn">
+      <span class="icon">⚠️</span>
+      <div>Ensure your tiers cover all possible price ranges without gaps. If a set's price falls in a gap, the system uses the hardcoded fallback (70% sealed / 55% open / 50% used).</div>
+    </div>
+  </section>
+
+  <!-- ═══ CONDITION RULES ═══ -->
+  <section id="condition-rules">
+    <h2>Condition Rules</h2>
+    <p>This is the most important tab. These values directly control the cash offer paid to customers for each set type and condition. All percentages are applied to the relevant BrickLink average market price.</p>
+
+    <h3>New Sets — Seals Intact</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Like New Condition %</strong></td><td>70%</td><td>Seals intact, box in excellent condition. Pay 70% of new market average.</td></tr>
+        <tr><td><strong>Fair Condition %</strong></td><td>65%</td><td>Seals intact, box has minor wear. Pay 65% of new market average.</td></tr>
+        <tr><td><strong>Bad Condition %</strong></td><td>55%</td><td>Seals intact but box is heavily damaged. Pay 55% of new market average.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>New Sets — Seals Broken</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Complete Set %</strong></td><td>50%</td><td>Box opened but set is 100% complete. Pay 50% of new average. Missing minifig deductions are applied on top.</td></tr>
+        <tr><td><strong>Incomplete Rate (£/KG)</strong></td><td>£6.50</td><td>Set is incomplete. Pay £6.50 per KG of parts present, plus 25% of any included minifigures' value.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Used Sets</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><strong>100% Complete — Built %</strong></td><td>55%</td><td>Used, fully complete, currently assembled. Pay 55% of used average.</td></tr>
+        <tr><td><strong>100% Complete — Unbuilt %</strong></td><td>45%</td><td>Used, fully complete, pieces loose/dismantled. Pay 45% of used average.</td></tr>
+        <tr><td><strong>Over 95% — Built %</strong></td><td>40%</td><td>Used, over 95% complete, assembled. Pay 40% of used average.</td></tr>
+        <tr><td><strong>Over 95% — Unbuilt %</strong></td><td>30%</td><td>Used, over 95% complete, loose. Pay 30% of used average.</td></tr>
+        <tr><td><strong>Mixed LEGO Rate (£/KG)</strong></td><td>£4.25</td><td>Used, under 95% complete. Pay £4.25 per KG plus 25% of any present minifig value.</td></tr>
+        <tr><td><strong>Minifigure Value Payout %</strong></td><td>25%</td><td>For incomplete/mixed sets: percentage of each present minifigure's market value that is paid out.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Box &amp; Instructions Deductions</h3>
+    <p>These are applied as a percentage deduction <em>from the initial valuation</em> for used sets at 100% or 95% completeness.</p>
+    <table>
+      <thead><tr><th>Scenario</th><th>Default Deduction</th></tr></thead>
+      <tbody>
+        <tr><td>Has box but no instructions</td><td>5%</td></tr>
+        <tr><td>Has instructions but no box</td><td>7%</td></tr>
+        <tr><td>Neither box nor instructions</td><td>10%</td></tr>
+        <tr><td>Has both box and instructions</td><td>0% (no deduction)</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Global Rules</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Minifigure Deduction Multiplier</strong></td><td>2.0×</td><td>For complete sets with missing minifigs: deduction = minifig market value × 2.0 per missing figure.</td></tr>
+        <tr><td><strong>Max Box Weight (KG)</strong></td><td>18 KG</td><td>Maximum total weight per shipment. Customers are blocked from adding more items once this is reached.</td></tr>
+        <tr><td><strong>Rejection Redirect URL</strong></td><td>/sell-mixed-lego/</td><td>Where customers are sent if their set receives a £0 offer (too low value or rejected type).</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══ ACCEPTANCE TOGGLES ═══ -->
+  <section id="acceptance-toggles">
+    <h2>Acceptance Toggles</h2>
+    <p>Acceptance Toggles let you <strong>temporarily stop accepting specific types of sets</strong> without changing your pricing rules. When a type is disabled:</p>
+    <ul class="checklist">
+      <li>The option is hidden from customers on the frontend evaluator</li>
+      <li>The backend rejects any calculation attempt for that type (safety net)</li>
+      <li>All other set types continue working normally</li>
+      <li class="cross">No pricing rules are deleted — re-enabling the toggle instantly restores full functionality</li>
+    </ul>
+
+    <h3>The five toggles</h3>
+    <div class="card">
+      <div class="toggle-row">
+        <div class="toggle-indicator on"><div class="knob"></div></div>
+        <div class="toggle-label">Accept New — Seals Intact</div>
+        <span class="toggle-status on">Enabled</span>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-indicator on"><div class="knob"></div></div>
+        <div class="toggle-label">Accept New — Seals Broken (Open Box)</div>
+        <span class="toggle-status on">Enabled</span>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-indicator on"><div class="knob"></div></div>
+        <div class="toggle-label">Accept Used — 100% Complete</div>
+        <span class="toggle-status on">Enabled</span>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-indicator off"><div class="knob"></div></div>
+        <div class="toggle-label">Accept Used — Over 95% Complete</div>
+        <span class="toggle-status off">Disabled</span>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-indicator off"><div class="knob"></div></div>
+        <div class="toggle-label">Accept Used — Under 95% / Mixed</div>
+        <span class="toggle-status off">Disabled</span>
+      </div>
+    </div>
+    <p style="font-size:13.5px;color:#6b7280;">In the example above: customers can only submit New sets or Used 100% Complete sets. The "Over 95%" and "Under 95%" options are hidden.</p>
+
+    <h3>How to change a toggle</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Go to Condition Rules tab</strong>
+          Navigate to <em>LEGO Evaluator → Condition Rules</em> and scroll to the bottom — the <strong>Acceptance Toggles</strong> section is at the end.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Check or uncheck the box</strong>
+          Tick = accepting that type. Untick = temporarily not accepting.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Save Changes</strong>
+          Click the blue <strong>Save Changes</strong> button. Changes take effect immediately for all new visitors — no cache flush needed.
+        </div>
+      </div>
+    </div>
+
+    <div class="notice success">
+      <span class="icon">✅</span>
+      <div>If you disable <em>all</em> options under New, the "New" condition card disappears entirely from the frontend. Same for Used. Customers only see the choices you are currently accepting.</div>
+    </div>
+  </section>
+
+  <!-- ═══ USED PRICE FALLBACK ═══ -->
+  <section id="used-fallback">
+    <h2>Used Price Fallback</h2>
+    <p>BrickLink sometimes has no sold or stock data for a used set — especially newer releases or less popular sets. Without this fallback, the used price would default to <strong>£0</strong>, which would cause incorrect or zero offers even for valuable sets.</p>
+
+    <h3>How it works</h3>
+    <p>When the plugin detects that the BrickLink used average price is £0, it automatically estimates the used price as a percentage of the new price:</p>
+    <pre>estimated_used_price = new_avg_price × (fallback_percentage / 100)</pre>
+
+    <div class="example">
+      <div class="ex-title">Example — Set 75418 (no BrickLink used data)</div>
+      BrickLink new average: <strong>£30.00</strong><br>
+      BrickLink used average: <strong>£0.00</strong> (no data)<br>
+      Fallback % setting: <strong>70%</strong><br><br>
+      → Estimated used price = £30.00 × 70% = <strong>£21.00</strong><br>
+      → Customer submits Used 100% Complete (Built) at 55% → offer = £21.00 × 55% = <strong>£11.50</strong>
+    </div>
+
+    <p>A visible amber notice is shown to the customer on the frontend when the fallback is active: <em>"No used sold data found on BrickLink — used price is estimated at 70% of new price."</em></p>
+
+    <h3>Changing the fallback percentage</h3>
+    <p>Go to <em>LEGO Evaluator → Condition Rules → Used Price Fallback</em>. The default is <strong>70%</strong> (30% off new). Adjust to match your typical new-to-used price ratio for LEGO in the UK market.</p>
+
+    <table>
+      <thead><tr><th>Fallback %</th><th>Meaning</th><th>When to use</th></tr></thead>
+      <tbody>
+        <tr><td>70%</td><td>30% off new price</td><td>Default — reasonable for most LEGO sets</td></tr>
+        <tr><td>60%</td><td>40% off new price</td><td>If your market shows larger new-to-used gap</td></tr>
+        <tr><td>80%</td><td>20% off new price</td><td>For premium/rare sets where used stays close to new</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══ UI STYLING ═══ -->
+  <section id="ui-styling">
+    <h2>UI Styling</h2>
+    <p>The UI Styling tab lets you customise the evaluator's appearance to match your theme without touching any code.</p>
+
+    <h3>Layout &amp; Typography</h3>
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>Example values</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Container Max Width</strong></td><td>800px</td><td><code>700px</code>, <code>100%</code>, <code>900px</code></td></tr>
+        <tr><td><strong>Container Margin</strong></td><td>20px auto</td><td><code>0 auto</code>, <code>40px auto</code></td></tr>
+        <tr><td><strong>Font Family</strong></td><td>inherit</td><td><code>inherit</code>, <code>'Inter', sans-serif</code></td></tr>
+        <tr><td><strong>Text Color</strong></td><td>inherit</td><td><code>inherit</code>, <code>#1a1a1a</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Colors</h3>
+    <p>Each color field has a visual color-picker. Click the swatch to open the picker.</p>
+    <table>
+      <thead><tr><th>Setting</th><th>Default</th><th>What it affects</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Primary Brand Color</strong></td><td>#1a1a1a</td><td>Active condition card border, toggle switch color</td></tr>
+        <tr><td><strong>Accent/Action Color</strong></td><td>#10b981</td><td>"Accept Evaluation" button, offer price text</td></tr>
+        <tr><td><strong>Card Background</strong></td><td>#ffffff</td><td>Background of the main search and condition cards</td></tr>
+        <tr><td><strong>Border Color</strong></td><td>#ebedf0</td><td>Card borders, dividers</td></tr>
+        <tr><td><strong>Subtle Background</strong></td><td>#f9fafb</td><td>Question boxes, step backgrounds</td></tr>
+        <tr><td><strong>Result Banner Background</strong></td><td>#ecfdf5</td><td>The green result banner that shows the offer price</td></tr>
+        <tr><td><strong>Result Banner Border</strong></td><td>#d1fae5</td><td>Border of the result banner</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══ GENERAL SETTINGS ═══ -->
+  <section id="general-settings">
+    <h2>General Settings</h2>
+
+    <h3>Evaluated Product</h3>
+    <p>This dropdown lists all WooCommerce products. Select the <strong>shell product</strong> you created during setup. Every time a customer adds a LEGO evaluation to their basket, this product is added with a dynamically overridden price equal to the offer.</p>
+    <div class="notice warn">
+      <span class="icon">⚠️</span>
+      <div>If you change this product later, any existing cart sessions will reference the old product ID. Clear WooCommerce session data or ask customers to clear their cart if issues arise.</div>
+    </div>
+
+    <h3>Debug Mode</h3>
+    <p>When enabled, every Bricklink API call is logged to <code>tee-api-debug.json</code> in the plugin directory. The last 20 calls are kept. View them in the <strong>Logs</strong> tab.</p>
+    <ul class="checklist">
+      <li>Enable when troubleshooting missing prices or API errors</li>
+      <li>Disable on production to reduce file I/O</li>
+      <li class="cross">Do not leave enabled permanently — the log file will grow and could expose API request details</li>
+    </ul>
+  </section>
+
+  <!-- ═══ LOGS ═══ -->
+  <section id="logs">
+    <h2>Logs Tab</h2>
+    <p>The Logs tab shows a reverse-chronological list of the last 20 Bricklink API requests. Each entry shows:</p>
+    <ul class="checklist">
+      <li>Timestamp</li>
+      <li>HTTP method and endpoint (e.g. <code>GET items/SET/75192-1/price</code>)</li>
+      <li>Parameters sent (expandable)</li>
+      <li>Full API response (expandable)</li>
+    </ul>
+    <h3>Deleting logs</h3>
+    <p>Click the <strong>Delete Logs</strong> button at the top of the tab to immediately delete the log file. A confirmation prompt is shown first.</p>
+    <div class="notice info">
+      <span class="icon">ℹ️</span>
+      <div>Debug Mode must be enabled (General Settings tab) for logs to be collected. If the log file doesn't exist yet, the tab will say "Log file not found."</div>
+    </div>
+  </section>
+
+  <!-- ═══ SHORTCODE ═══ -->
+  <section id="shortcode">
+    <h2>Adding the Evaluator to a Page</h2>
+    <p>The evaluator is added to any page or post using a shortcode:</p>
+    <div class="shortcode-box">[lego_evaluator]</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Create or edit a page</strong>
+          Go to <em>Pages → Add New</em> (or edit an existing page like <em>/sell-your-lego/</em>).
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Add a Shortcode block</strong>
+          In the Gutenberg editor, add a <em>Shortcode</em> block and paste <code>[lego_evaluator]</code>.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Publish and test</strong>
+          Visit the page as a customer and try searching for a set number such as <code>75192</code>.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ CUSTOMER FLOW ═══ -->
+  <section id="customer-flow">
+    <h2>Customer Journey</h2>
+    <p>This is what a customer experiences on the evaluator page.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Enter a LEGO set number</strong>
+          The customer types a set number (e.g. <code>42154</code>) and clicks Search. The plugin fetches set details, new/used prices, and minifigure data from Bricklink in real time.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Select condition</strong>
+          A <em>New</em> or <em>Used</em> card appears (only enabled types are shown). The customer selects one.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Answer condition questions</strong>
+          Dynamic questions appear based on condition:
+          <ul style="margin-top:8px;padding-left:20px;font-size:14px;color:#4a5278;">
+            <li><em>New</em>: Are seals intact? → Box condition or completeness</li>
+            <li><em>Used</em>: How complete? → Built/unbuilt, box/instructions</li>
+          </ul>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Verify minifigures</strong>
+          If the set contains minifigures, they are listed with quantity selectors. The customer marks any that are missing.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>See the offer</strong>
+          A result banner shows the calculated offer price updated in real time. The customer can accept or continue evaluating more sets.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <strong>Add all to basket</strong>
+          Accepted evaluations appear in a list. When ready, the customer clicks <em>Add All to Basket</em> and is redirected to the WooCommerce cart.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ CART & CHECKOUT ═══ -->
+  <section id="cart-checkout">
+    <h2>Cart &amp; Checkout Behaviour</h2>
+    <p>Each accepted evaluation appears as a line item in the WooCommerce cart. The plugin automatically handles several things:</p>
+    <table>
+      <thead><tr><th>What the plugin does</th><th>How it works</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Override price</strong></td><td>The shell product's £0 price is replaced with the calculated offer for each line item.</td></tr>
+        <tr><td><strong>Show LEGO set image</strong></td><td>The set's BrickLink image replaces the product thumbnail in cart and admin order view.</td></tr>
+        <tr><td><strong>Display evaluation details</strong></td><td>Set name, condition, completeness, weight, etc. appear as line item meta in cart and checkout.</td></tr>
+        <tr><td><strong>Set correct weight</strong></td><td>The set's BrickLink weight (in grams, converted to your WooCommerce unit) is applied to the product so shipping rate plugins calculate correctly.</td></tr>
+        <tr><td><strong>Save to order</strong></td><td>All evaluation details and the set image URL are stored as order item meta, visible in WooCommerce order admin.</td></tr>
+      </tbody>
+    </table>
+    <div class="notice info">
+      <span class="icon">ℹ️</span>
+      <div>Weight is stored as <code>_tee_weight_grams</code> in order item meta and automatically converted to your store's weight unit (kg, lbs, oz, g) when shipping plugins read it.</div>
+    </div>
+  </section>
+
+  <!-- ═══ EXAMPLE: PRICING ═══ -->
+  <section id="example-pricing">
+    <h2>Example: Full Pricing Calculation</h2>
+    <p>Let's walk through a real example: <strong>Set 75192 Millennium Falcon</strong>, submitted as <em>Used, 100% Complete, Unbuilt, with Box but no Instructions</em>. One minifigure is missing (Han Solo, market value £8.00).</p>
+
+    <div class="example">
+      <div class="ex-title">BrickLink Data</div>
+      New Average: <strong>£480.00</strong> | Used Average: <strong>£320.00</strong>
+    </div>
+
+    <div class="calc-box">
+      <div class="calc-row"><span>Base: Used 100% Unbuilt (45% of £320.00)</span><span>£144.00</span></div>
+      <div class="calc-row"><span>Box only deduction (5% of £144.00)</span><span>− £7.20</span></div>
+      <div class="calc-row"><span>Subtotal after box deduction</span><span>£136.80</span></div>
+      <div class="calc-row"><span>Missing minifig deduction (£8.00 × 2.0 multiplier)</span><span>− £16.00</span></div>
+      <div class="calc-row"><span>Raw offer</span><span>£120.80</span></div>
+      <div class="calc-row"><span>Rounded to nearest £0.50</span><span><strong>£121.00</strong></span></div>
+    </div>
+
+    <div class="notice success">
+      <span class="icon">✅</span>
+      <div>The customer sees <strong>£121.00</strong> as the offer. They click "Accept Evaluation" and it is added to the basket at that price.</div>
+    </div>
+  </section>
+
+  <!-- ═══ EXAMPLE: TOGGLES ═══ -->
+  <section id="example-toggles">
+    <h2>Example: Toggle Scenarios</h2>
+    <p>Practical examples of when and how to use Acceptance Toggles.</p>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Scenario A — Christmas Rush: Stop accepting incomplete sets</h3>
+      <p>During peak periods you only want complete sets. Uncheck:</p>
+      <ul class="checklist">
+        <li class="cross">Accept New — Seals Broken</li>
+        <li class="cross">Accept Used — Over 95% Complete</li>
+        <li class="cross">Accept Used — Under 95% / Mixed</li>
+      </ul>
+      <p style="margin-top:10px;">Customers will only see New Sealed and Used 100% Complete options. All others are hidden.</p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Scenario B — Warehouse Full: Stop accepting used sets entirely</h3>
+      <p>Uncheck all three used toggles:</p>
+      <ul class="checklist">
+        <li class="cross">Accept Used — 100% Complete</li>
+        <li class="cross">Accept Used — Over 95% Complete</li>
+        <li class="cross">Accept Used — Under 95% / Mixed</li>
+      </ul>
+      <p style="margin-top:10px;">The entire "Used" condition card disappears from the frontend. Customers can only submit new sets.</p>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0;">Scenario C — New only</h3>
+      <p>You want to test accepting only New Sealed sets this week. Uncheck everything except:</p>
+      <ul class="checklist">
+        <li>Accept New — Seals Intact</li>
+      </ul>
+      <p style="margin-top:10px;">The "Used" card disappears. On the "New" flow, the "Are seals intact?" question is skipped and the customer goes straight to the box condition question (since only one seal option remains, it is auto-selected).</p>
+    </div>
+  </section>
+
+  <!-- ═══ EXAMPLE: BASEPLATES ═══ -->
+  <section id="example-baseplates">
+    <h2>Example: Baseplates &amp; Road Plates</h2>
+    <p>Sets whose names contain the words <strong>Baseplate</strong> or <strong>Road Plate</strong> are automatically priced by weight for used condition rather than by market average. This is because BrickLink market prices for these items don't reflect their practical resale value as loose LEGO.</p>
+
+    <div class="example">
+      <div class="ex-title">Example — Set 11008 "Bricks and Houses" (Baseplate)</div>
+      BrickLink used average: <strong>£12.00</strong> (would normally be used as base)<br>
+      Set name matches "Baseplate" keyword → <strong>weight-only pricing applied</strong><br><br>
+      Customer enters weight: <strong>400g</strong><br>
+      Used Mixed Rate: <strong>£4.25/KG</strong><br><br>
+      → 0.4 KG × £4.25 = <strong>£1.70</strong> → rounded to <strong>£1.50</strong>
+    </div>
+
+    <div class="notice info">
+      <span class="icon">ℹ️</span>
+      <div>This rule only applies to <strong>used condition</strong>. New Baseplate sets still use normal market-price based calculations.</div>
+    </div>
+    <p>The matching is case-insensitive and matches partial words. Both "Green Baseplate" and "Road Plates Pack" would be caught.</p>
+  </section>
+
+  <!-- ═══ EXAMPLE: NO DATA ═══ -->
+  <section id="example-no-data">
+    <h2>Example: No BrickLink Used Data</h2>
+    <p>Some sets — particularly recent releases or niche sets — have no recorded used sales on BrickLink. Without a fallback, the used average would be £0 and customers would see a zero offer.</p>
+
+    <div class="example">
+      <div class="ex-title">Example — Set 75418 (no used BrickLink data at time of evaluation)</div>
+      BrickLink new average: <strong>£28.99</strong><br>
+      BrickLink used average: <strong>£0.00</strong> (no sold listings recorded)<br>
+      Fallback % configured: <strong>70%</strong><br><br>
+      System estimates used = £28.99 × 70% = <strong>£20.29</strong><br><br>
+      Customer submits Used 100% Built (55% of estimated £20.29):<br>
+      → £20.29 × 55% = £11.16 → rounded to <strong>£11.00</strong>
+    </div>
+
+    <p>The customer sees an amber notice on screen: <em>"No used sold data found on BrickLink — used price is estimated at 70% of new price."</em> This keeps them informed without blocking the transaction.</p>
+
+    <div class="notice warn">
+      <span class="icon">⚠️</span>
+      <div>If BOTH new and used prices are £0 (set not found on BrickLink), the offer will return £0 and the customer is redirected to the rejection URL. This usually means the set number was entered incorrectly.</div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+  // Highlight active nav link on scroll
+  var sections = document.querySelectorAll('section[id]');
+  var navLinks = document.querySelectorAll('nav a');
+  window.addEventListener('scroll', function() {
+    var scrollY = window.scrollY + 80;
+    sections.forEach(function(s) {
+      if (s.offsetTop <= scrollY && s.offsetTop + s.offsetHeight > scrollY) {
+        navLinks.forEach(function(a) {
+          a.classList.toggle('active', a.getAttribute('href') === '#' + s.id);
+        });
+      }
+    });
+  });
+</script>
+</body>
+</html>

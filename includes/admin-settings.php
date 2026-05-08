@@ -47,6 +47,14 @@ class TEE_Admin_Settings {
         register_setting( 'tee_settings_group', 'tee_bg_subtle' );
         register_setting( 'tee_settings_group', 'tee_success_border' );
         register_setting( 'tee_settings_group', 'tee_debug_mode' );
+
+        // Acceptance toggles
+        register_setting( 'tee_settings_group', 'tee_accept_new_sealed' );
+        register_setting( 'tee_settings_group', 'tee_accept_new_open' );
+        register_setting( 'tee_settings_group', 'tee_accept_used_100' );
+        register_setting( 'tee_settings_group', 'tee_accept_used_95' );
+        register_setting( 'tee_settings_group', 'tee_accept_used_mixed' );
+        register_setting( 'tee_settings_group', 'tee_used_fallback_pct' );
     }
 
     public function handle_log_deletion() {
@@ -283,6 +291,63 @@ class TEE_Admin_Settings {
                         <tr>
                             <th scope="row"><?php _e( 'Neither Box nor Instructions', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Additional deduction percentage applied if both the original box and instruction manuals are missing.', 'toy-exchange-evaluator' ) ); ?></th>
                             <td><input type="number" step="0.1" name="tee_condition_rules[used_none]" value="<?php echo esc_attr( $cond_rules['used_none'] ); ?>"> %</td>
+                        </tr>
+                    </table>
+
+                    <h3><?php _e( 'Acceptance Toggles', 'toy-exchange-evaluator' ); ?></h3>
+                    <p><?php _e( 'Enable or disable specific set types you are currently accepting. Disabled types are hidden from customers on the frontend and rejected by the backend calculation.', 'toy-exchange-evaluator' ); ?></p>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php _e( 'Accept New — Seals Intact', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Accept New sets where all original seals are still intact.', 'toy-exchange-evaluator' ) ); ?></th>
+                            <td>
+                                <input type="hidden" name="tee_accept_new_sealed" value="0">
+                                <input type="checkbox" name="tee_accept_new_sealed" value="1" <?php checked( 1, get_option( 'tee_accept_new_sealed', 1 ), true ); ?>>
+                                <p class="description"><?php _e( 'Uncheck to temporarily stop accepting sealed New sets.', 'toy-exchange-evaluator' ); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php _e( 'Accept New — Seals Broken (Open Box)', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Accept New sets where the box has been opened or seals broken.', 'toy-exchange-evaluator' ) ); ?></th>
+                            <td>
+                                <input type="hidden" name="tee_accept_new_open" value="0">
+                                <input type="checkbox" name="tee_accept_new_open" value="1" <?php checked( 1, get_option( 'tee_accept_new_open', 1 ), true ); ?>>
+                                <p class="description"><?php _e( 'Uncheck to stop accepting open/incomplete New sets.', 'toy-exchange-evaluator' ); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php _e( 'Accept Used — 100% Complete', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Accept Used sets that are verified 100% complete.', 'toy-exchange-evaluator' ) ); ?></th>
+                            <td>
+                                <input type="hidden" name="tee_accept_used_100" value="0">
+                                <input type="checkbox" name="tee_accept_used_100" value="1" <?php checked( 1, get_option( 'tee_accept_used_100', 1 ), true ); ?>>
+                                <p class="description"><?php _e( 'Uncheck to stop accepting 100% complete Used sets.', 'toy-exchange-evaluator' ); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php _e( 'Accept Used — Over 95% Complete', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Accept Used sets that are over 95% complete (missing only minor parts).', 'toy-exchange-evaluator' ) ); ?></th>
+                            <td>
+                                <input type="hidden" name="tee_accept_used_95" value="0">
+                                <input type="checkbox" name="tee_accept_used_95" value="1" <?php checked( 1, get_option( 'tee_accept_used_95', 1 ), true ); ?>>
+                                <p class="description"><?php _e( 'Uncheck to stop accepting over-95% complete Used sets.', 'toy-exchange-evaluator' ); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php _e( 'Accept Used — Under 95% / Mixed', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Accept Used sets under 95% complete, priced by weight.', 'toy-exchange-evaluator' ) ); ?></th>
+                            <td>
+                                <input type="hidden" name="tee_accept_used_mixed" value="0">
+                                <input type="checkbox" name="tee_accept_used_mixed" value="1" <?php checked( 1, get_option( 'tee_accept_used_mixed', 1 ), true ); ?>>
+                                <p class="description"><?php _e( 'Uncheck to stop accepting incomplete/mixed Used sets.', 'toy-exchange-evaluator' ); ?></p>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <h3><?php _e( 'Used Price Fallback', 'toy-exchange-evaluator' ); ?></h3>
+                    <p><?php _e( 'When BrickLink has no used sold or stock data (used average = £0), the system estimates the used price from the new price using this percentage.', 'toy-exchange-evaluator' ); ?></p>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php _e( 'Fallback Percentage of New Price', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'E.g. 70 means "assume used = 70% of new price" (30% discount). This estimated price is then subject to the normal used condition percentage deductions.', 'toy-exchange-evaluator' ) ); ?></th>
+                            <td>
+                                <input type="number" step="1" min="1" max="99" name="tee_used_fallback_pct" value="<?php echo esc_attr( get_option( 'tee_used_fallback_pct', 70 ) ); ?>" class="small-text"> %
+                                <p class="description"><?php _e( 'Default: 70% (30% off new price). Applied automatically when no BrickLink used data exists for a set.', 'toy-exchange-evaluator' ); ?></p>
+                            </td>
                         </tr>
                     </table>
 

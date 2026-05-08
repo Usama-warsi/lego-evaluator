@@ -12,10 +12,16 @@ class TEE_Evaluator_Logic {
         $market_prices = $set_data['prices']; // Contains new_avg and used_avg
         $condition = $user_inputs['condition'];
         $base_price = 0;
-        
+
+        // Fallback: if no BrickLink used price data, estimate from new price
+        if ( empty( $market_prices['used_avg'] ) || (float) $market_prices['used_avg'] == 0 ) {
+            $fallback_pct              = (float) get_option( 'tee_used_fallback_pct', 70 );
+            $market_prices['used_avg'] = (float) $market_prices['new_avg'] * ( $fallback_pct / 100 );
+        }
+
         // Dynamic Tier Lookup based on the price of the selected condition
         $price_for_tier = ('used' === $condition) ? $market_prices['used_avg'] : $market_prices['new_avg'];
-        $tier_rules = $this->get_tier_rules( $price_for_tier ); 
+        $tier_rules = $this->get_tier_rules( $price_for_tier );
 
         // Fetch deduction rules
         $cond_rules = get_option( 'tee_condition_rules', array() );
@@ -42,10 +48,27 @@ class TEE_Evaluator_Logic {
         $rules = wp_parse_args( $cond_rules, $defaults );
 
         $offer = 0;
-        $rejected = false;
+
+        // Baseplates and Road Plates: force weight-only pricing for used condition
+        $set_name_lower    = strtolower( $set_data['name'] ?? '' );
+        $force_weight_only = ( strpos( $set_name_lower, 'baseplate' ) !== false || strpos( $set_name_lower, 'road plate' ) !== false );
+
+        if ( $force_weight_only && 'used' === $condition ) {
+            $weight_grams = (float) ( $user_inputs['weight'] ?? $set_data['weight'] ?? 0 );
+            $weight_kg    = $weight_grams / 1000;
+            $offer        = round( ( $weight_kg * ( $rules['used_mixed_rate'] ?? 4.25 ) ) * 2 ) / 2;
+            if ( $offer <= 0 ) {
+                return array( 'rejected' => true, 'rejection_url' => $rules['rejection_url'] ?? '#' );
+            }
+            return $offer;
+        }
 
         if ( 'new' === $condition ) {
             if ( ! empty( $user_inputs['seals_intact'] ) ) {
+                // Check acceptance toggle
+                if ( ! get_option( 'tee_accept_new_sealed', 1 ) ) {
+                    return array( 'rejected' => true, 'rejection_url' => $rules['rejection_url'] ?? '#' );
+                }
                 // Seals Yes Branch
                 $base_price = $market_prices['new_avg'];
                 $box_cond = $user_inputs['box_condition'] ?? 'like_new';
@@ -53,6 +76,10 @@ class TEE_Evaluator_Logic {
                 $pct = $rules[$pct_key] ?? 70;
                 $offer = $base_price * ( $pct / 100 );
             } else {
+                // Check acceptance toggle
+                if ( ! get_option( 'tee_accept_new_open', 1 ) ) {
+                    return array( 'rejected' => true, 'rejection_url' => $rules['rejection_url'] ?? '#' );
+                }
                 // Seals No Branch
                 if ( ! empty( $user_inputs['is_complete'] ) ) {
                     // Complete
@@ -89,7 +116,18 @@ class TEE_Evaluator_Logic {
         } 
         elseif ( 'used' === $condition ) {
             $comp_level = $user_inputs['completion_level'] ?? '100';
-            
+
+            // Check acceptance toggles per completion level
+            if ( '100' === $comp_level && ! get_option( 'tee_accept_used_100', 1 ) ) {
+                return array( 'rejected' => true, 'rejection_url' => $rules['rejection_url'] ?? '#' );
+            }
+            if ( '95' === $comp_level && ! get_option( 'tee_accept_used_95', 1 ) ) {
+                return array( 'rejected' => true, 'rejection_url' => $rules['rejection_url'] ?? '#' );
+            }
+            if ( 'less' === $comp_level && ! get_option( 'tee_accept_used_mixed', 1 ) ) {
+                return array( 'rejected' => true, 'rejection_url' => $rules['rejection_url'] ?? '#' );
+            }
+
             if ( '100' === $comp_level || '95' === $comp_level ) {
                 $base_price = $market_prices['used_avg'];
                 $built = ! empty( $user_inputs['is_built'] );
