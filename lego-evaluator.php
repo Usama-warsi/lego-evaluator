@@ -61,10 +61,17 @@ class ToyExchangeEvaluator {
         wp_enqueue_script( 'tee-frontend-ui', TEE_PLUGIN_URL . 'assets/js/frontend-ui.js', array( 'jquery' ), TEE_VERSION, true );
         
         wp_localize_script( 'tee-frontend-ui', 'tee_vars', array(
-            'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'nonce'    => wp_create_nonce( 'tee_nonce' ),
+            'ajax_url'   => admin_url( 'admin-ajax.php' ),
+            'nonce'      => wp_create_nonce( 'tee_nonce' ),
             'product_id' => get_option( 'tee_default_product_id' ),
-            'cart_url'   => function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : ''
+            'cart_url'   => function_exists( 'wc_get_cart_url' ) ? wc_get_cart_url() : '',
+            'acceptance' => array(
+                'new_sealed' => (bool) get_option( 'tee_accept_new_sealed', 1 ),
+                'new_open'   => (bool) get_option( 'tee_accept_new_open', 1 ),
+                'used_100'   => (bool) get_option( 'tee_accept_used_100', 1 ),
+                'used_95'    => (bool) get_option( 'tee_accept_used_95', 1 ),
+                'used_mixed' => (bool) get_option( 'tee_accept_used_mixed', 1 ),
+            ),
         ) );
     }
 
@@ -162,6 +169,14 @@ class ToyExchangeEvaluator {
             error_log( 'TEE Bricklink Used Price Error: ' . $used_price_guide->get_error_message() );
         }
 
+        // Fallback: no BrickLink used data → estimate from new price
+        $used_price_estimated = false;
+        if ( $used_avg == 0 && $new_avg > 0 ) {
+            $fallback_pct         = (float) get_option( 'tee_used_fallback_pct', 70 );
+            $used_avg             = $new_avg * ( $fallback_pct / 100 );
+            $used_price_estimated = true;
+        }
+
         // Fetch Subsets (Minifigures)
         $subsets = $api->get_subsets( $set_number );
         $minifigs = array();
@@ -200,8 +215,9 @@ class ToyExchangeEvaluator {
             'weight'         => $item_details['weight'] ?? 0,
             'image'          => (isset($item_details['image_url']) && strpos($item_details['image_url'], '//') === 0) ? 'https:' . $item_details['image_url'] : ($item_details['image_url'] ?? "https://img.bricklink.com/ItemImage/SN/{$item_details['no']}-1.png"),
             'prices'         => array(
-                'new_avg'    => $new_avg,
-                'used_avg'   => $used_avg,
+                'new_avg'              => $new_avg,
+                'used_avg'             => $used_avg,
+                'used_price_estimated' => $used_price_estimated,
             ),
             'minifigs_data'  => $minifigs,
             'minifigs_value' => $minifigs_total_value

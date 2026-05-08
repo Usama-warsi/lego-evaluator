@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEGO Evaluator — Developer Guide</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 1.7; color: #1a1a2e; background: #f4f6fb; }
+
+  .page-wrap { display: flex; min-height: 100vh; }
+  nav { width: 270px; min-width: 270px; background: #0f1117; color: #c8cfe8; position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 0 0 40px; }
+  nav .nav-logo { padding: 28px 24px 20px; border-bottom: 1px solid #1e2235; }
+  nav .nav-logo h2 { color: #fff; font-size: 15px; font-weight: 700; line-height: 1.3; }
+  nav .nav-logo span { font-size: 11px; color: #7e8aaf; text-transform: uppercase; letter-spacing: .08em; }
+  nav ul { list-style: none; padding: 12px 0; }
+  nav ul li a { display: block; padding: 8px 24px; font-size: 13.5px; color: #c8cfe8; text-decoration: none; border-left: 3px solid transparent; transition: all .15s; }
+  nav ul li a:hover { background: #1a1f2e; color: #fff; border-left-color: #a78bfa; }
+  nav ul li a.active { background: #1a1f2e; color: #a78bfa; border-left-color: #a78bfa; }
+  nav ul li.section-head { padding: 18px 24px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: #3a4060; }
+
+  main { flex: 1; padding: 40px 48px 80px; max-width: 980px; }
+  .hero { background: linear-gradient(135deg, #0f1117 0%, #1a1f2e 100%); color: #fff; border-radius: 14px; padding: 40px 44px; margin-bottom: 48px; }
+  .hero .badge { display: inline-block; background: #a78bfa; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 14px; }
+  .hero h1 { font-size: 32px; font-weight: 800; margin-bottom: 10px; }
+  .hero p { color: #9fb3d8; font-size: 16px; max-width: 560px; }
+  .hero .meta { margin-top: 20px; display: flex; gap: 24px; font-size: 13px; color: #7e8aaf; }
+  .hero .meta span strong { color: #c8cfe8; }
+
+  section { margin-bottom: 56px; scroll-margin-top: 30px; }
+  h2 { font-size: 22px; font-weight: 700; color: #1a1a2e; margin-bottom: 18px; padding-bottom: 10px; border-bottom: 2px solid #e5e9f2; }
+  h3 { font-size: 16px; font-weight: 700; color: #252847; margin: 24px 0 10px; }
+  h4 { font-size: 14px; font-weight: 700; color: #3a4060; margin: 18px 0 8px; }
+  p { margin-bottom: 12px; color: #3a4060; }
+
+  /* Code blocks */
+  pre { background: #0f1117; color: #c8d3f5; border-radius: 10px; padding: 22px 26px; overflow-x: auto; font-size: 13px; line-height: 1.65; margin: 14px 0 20px; font-family: 'SFMono-Regular', Consolas, 'Fira Code', monospace; }
+  pre .c { color: #636d9b; }  /* comment */
+  pre .k { color: #c084fc; }  /* keyword/function */
+  pre .s { color: #86efac; }  /* string */
+  pre .n { color: #93c5fd; }  /* name/var */
+  pre .p { color: #f8faff; }  /* punctuation */
+  pre .nb { color: #fbbf24; } /* built-in */
+  code { background: #f1f3fb; border: 1px solid #dde2ef; padding: 2px 6px; border-radius: 4px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px; color: #7c3aed; }
+
+  /* Notices */
+  .notice { border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; font-size: 14px; display: flex; gap: 12px; align-items: flex-start; }
+  .notice .icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+  .notice.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+  .notice.warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .notice.success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; }
+  .notice.tip { background: #faf5ff; border: 1px solid #e9d5ff; color: #6b21a8; }
+
+  /* Cards & grids */
+  .card { background: #fff; border: 1px solid #e5e9f2; border-radius: 10px; padding: 24px 28px; margin-bottom: 18px; }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+  @media (max-width: 720px) { .card-grid { grid-template-columns: 1fr; } }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-bottom: 20px; }
+  thead th { background: #f1f3fb; font-weight: 700; text-align: left; padding: 10px 14px; border: 1px solid #e5e9f2; color: #252847; }
+  tbody td { padding: 9px 14px; border: 1px solid #e5e9f2; vertical-align: top; }
+  tbody tr:nth-child(even) td { background: #fafbff; }
+
+  /* File tree */
+  .file-tree { background: #0f1117; border-radius: 10px; padding: 22px 26px; font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; line-height: 1.8; color: #c8d3f5; margin: 14px 0 20px; }
+  .file-tree .dir { color: #93c5fd; font-weight: 600; }
+  .file-tree .file { color: #c8d3f5; }
+  .file-tree .comment { color: #4a526a; }
+  .file-tree .indent { padding-left: 20px; }
+  .file-tree .indent2 { padding-left: 40px; }
+
+  /* Flow diagram */
+  .flow { display: flex; align-items: center; flex-wrap: wrap; gap: 0; margin: 14px 0 20px; }
+  .flow-box { background: #f1f3fb; border: 1.5px solid #d1d9f0; border-radius: 8px; padding: 10px 16px; font-size: 13px; font-weight: 600; color: #252847; text-align: center; }
+  .flow-box.php { background: #faf5ff; border-color: #e9d5ff; color: #6b21a8; }
+  .flow-box.js { background: #fefce8; border-color: #fde68a; color: #713f12; }
+  .flow-box.wc { background: #f0fdf4; border-color: #bbf7d0; color: #14532d; }
+  .flow-arrow { padding: 0 8px; color: #9ca3af; font-size: 18px; font-weight: 300; }
+
+  /* Method signature */
+  .method { background: #0f1117; border-radius: 8px; padding: 14px 20px; margin: 10px 0; }
+  .method .sig { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; color: #c8d3f5; }
+  .method .sig .kw { color: #c084fc; }
+  .method .sig .fn { color: #93c5fd; }
+  .method .sig .param { color: #fbbf24; }
+  .method .sig .ret { color: #86efac; }
+  .method .desc { margin-top: 8px; font-size: 13.5px; color: #9fb3d8; }
+
+  /* Hook reference */
+  .hook { background: #fff; border: 1px solid #e5e9f2; border-left: 4px solid #a78bfa; border-radius: 6px; padding: 14px 18px; margin: 10px 0 16px; }
+  .hook .hook-name { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; font-weight: 700; color: #6b21a8; }
+  .hook .hook-type { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 3px; margin-left: 8px; text-transform: uppercase; }
+  .hook .hook-type.action { background: #dbeafe; color: #1e40af; }
+  .hook .hook-type.filter { background: #faf5ff; color: #6b21a8; }
+  .hook p { margin: 6px 0 0; font-size: 13.5px; color: #4a5278; }
+
+  /* Settings reference */
+  .opt-key { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px; color: #7c3aed; background: #f5f3ff; border: 1px solid #ede9fe; padding: 2px 6px; border-radius: 4px; }
+
+  ul.plain { padding-left: 20px; margin-bottom: 12px; }
+  ul.plain li { margin-bottom: 4px; font-size: 14px; color: #3a4060; }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+  .tag.php { background: #faf5ff; color: #6b21a8; }
+  .tag.js { background: #fefce8; color: #713f12; }
+  .tag.wc { background: #f0fdf4; color: #14532d; }
+  .tag.get { background: #dbeafe; color: #1e40af; }
+  .tag.post { background: #fef3c7; color: #92400e; }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<!-- Sidebar -->
+<nav>
+  <div class="nav-logo">
+    <h2>LEGO Evaluator</h2>
+    <span>Developer Guide — v1.1.0</span>
+  </div>
+  <ul>
+    <li class="section-head">Architecture</li>
+    <li><a href="#overview">Plugin Overview</a></li>
+    <li><a href="#file-structure">File Structure</a></li>
+    <li><a href="#data-flow">Request Data Flow</a></li>
+
+    <li class="section-head">PHP Classes</li>
+    <li><a href="#class-main">ToyExchangeEvaluator</a></li>
+    <li><a href="#class-api">TEE_Bricklink_API</a></li>
+    <li><a href="#class-logic">TEE_Evaluator_Logic</a></li>
+    <li><a href="#class-admin">TEE_Admin_Settings</a></li>
+
+    <li class="section-head">AJAX Endpoints</li>
+    <li><a href="#ajax-evaluate">tee_evaluate_set</a></li>
+    <li><a href="#ajax-calculate">tee_calculate_offer</a></li>
+    <li><a href="#ajax-cart">tee_add_to_cart</a></li>
+
+    <li class="section-head">Frontend JS</li>
+    <li><a href="#js-state">State Management</a></li>
+    <li><a href="#js-acceptance">Acceptance Helpers</a></li>
+    <li><a href="#js-flows">Render Flows</a></li>
+
+    <li class="section-head">WooCommerce Hooks</li>
+    <li><a href="#wc-hooks">Filters &amp; Actions</a></li>
+
+    <li class="section-head">Options Reference</li>
+    <li><a href="#options">All wp_options Keys</a></li>
+
+    <li class="section-head">Extending</li>
+    <li><a href="#extending-logic">Custom Offer Logic</a></li>
+    <li><a href="#extending-api">New API Endpoints</a></li>
+    <li><a href="#debugging">Debugging</a></li>
+  </ul>
+</nav>
+
+<main>
+
+  <div class="hero">
+    <div class="badge">Developer Guide</div>
+    <h1>LEGO Evaluator<br>Developer Reference</h1>
+    <p>Architecture overview, class reference, AJAX protocol, WooCommerce hooks, options reference, and extension patterns for the Toy Exchange LEGO Evaluator plugin.</p>
+    <div class="meta">
+      <span><strong>Version</strong> 1.1.0</span>
+      <span><strong>Requires WP</strong> 5.8+</span>
+      <span><strong>Requires PHP</strong> 7.4+</span>
+      <span><strong>Requires WC</strong> 5.0+</span>
+    </div>
+  </div>
+
+  <!-- ═══ OVERVIEW ═══ -->
+  <section id="overview">
+    <h2>Plugin Overview</h2>
+    <p>The Toy Exchange LEGO Evaluator is a WordPress plugin that integrates the BrickLink Marketplace API with WooCommerce to provide a frontend tool for customers to get instant cash-buy offers for LEGO sets they want to sell.</p>
+
+    <h3>Three-layer architecture</h3>
+    <div class="card-grid">
+      <div class="card" style="border-left:4px solid #a78bfa;">
+        <h4 style="margin-top:0;color:#6b21a8;">Data Layer</h4>
+        <p style="font-size:13.5px;"><strong>TEE_Bricklink_API</strong> handles all OAuth1 signed requests to <code>api.bricklink.com</code>. Returns set metadata, price guides (new/used), and minifigure subsets.</p>
+      </div>
+      <div class="card" style="border-left:4px solid #4f8ef7;">
+        <h4 style="margin-top:0;color:#1e40af;">Logic Layer</h4>
+        <p style="font-size:13.5px;"><strong>TEE_Evaluator_Logic</strong> applies the admin-configured pricing rules, condition rules, acceptance toggles, and special filters (Baseplates etc.) to produce a final offer in GBP.</p>
+      </div>
+      <div class="card" style="border-left:4px solid #10b981;">
+        <h4 style="margin-top:0;color:#065f46;">Presentation Layer</h4>
+        <p style="font-size:13.5px;"><strong>frontend-ui.js</strong> drives the entire UI state machine — search, dynamic question rendering, minifig management, offer display, and batch cart submission.</p>
+      </div>
+      <div class="card" style="border-left:4px solid #f59e0b;">
+        <h4 style="margin-top:0;color:#92400e;">WooCommerce Layer</h4>
+        <p style="font-size:13.5px;"><strong>lego-evaluator.php</strong> global hooks override cart item prices, weights, thumbnails, and persist evaluation metadata to orders.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FILE STRUCTURE ═══ -->
+  <section id="file-structure">
+    <h2>File Structure</h2>
+    <div class="file-tree">
+<span class="dir">lego-evaluator/</span><br>
+<span class="indent"><span class="file">lego-evaluator.php</span>         <span class="comment">— Main bootstrap: class ToyExchangeEvaluator, WC hooks</span></span><br>
+<span class="indent"><span class="dir">includes/</span></span><br>
+<span class="indent2"><span class="file">admin-settings.php</span>         <span class="comment">— class TEE_Admin_Settings: settings page &amp; tabs</span></span><br>
+<span class="indent2"><span class="file">bricklink-api.php</span>          <span class="comment">— class TEE_Bricklink_API: OAuth1 HTTP client</span></span><br>
+<span class="indent2"><span class="file">evaluator-logic.php</span>        <span class="comment">— class TEE_Evaluator_Logic: offer calculation engine</span></span><br>
+<span class="indent"><span class="dir">templates/</span></span><br>
+<span class="indent2"><span class="file">evaluator-form.php</span>         <span class="comment">— Frontend HTML skeleton (shortcode output)</span></span><br>
+<span class="indent"><span class="dir">assets/</span></span><br>
+<span class="indent2"><span class="dir">css/</span></span><br>
+<span class="indent2 indent"><span class="file">tee-frontend-styles.min.css</span>  <span class="comment">— Frontend styles (minified)</span></span><br>
+<span class="indent2 indent"><span class="file">admin-styles.css</span>            <span class="comment">— Admin settings page styles</span></span><br>
+<span class="indent2"><span class="dir">js/</span></span><br>
+<span class="indent2 indent"><span class="file">frontend-ui.js</span>              <span class="comment">— UI state machine + AJAX calls</span></span><br>
+<span class="indent2 indent"><span class="file">admin-settings.js</span>           <span class="comment">— Admin tab switching + color picker</span></span><br>
+<span class="indent"><span class="dir">docs/</span></span><br>
+<span class="indent2"><span class="file">admin-user-guide.html</span>      <span class="comment">— Admin guide (this repo)</span></span><br>
+<span class="indent2"><span class="file">developer-guide.html</span>       <span class="comment">— Developer guide (this file)</span></span>
+    </div>
+
+    <h3>Constants defined on load</h3>
+    <table>
+      <thead><tr><th>Constant</th><th>Value</th><th>Use</th></tr></thead>
+      <tbody>
+        <tr><td><code>TEE_PLUGIN_DIR</code></td><td><code>plugin_dir_path(__FILE__)</code></td><td>Absolute filesystem path with trailing slash</td></tr>
+        <tr><td><code>TEE_PLUGIN_URL</code></td><td><code>plugin_dir_url(__FILE__)</code></td><td>HTTP URL to plugin root for assets</td></tr>
+        <tr><td><code>TEE_VERSION</code></td><td><code>'1.0.0'</code></td><td>Cache-busting version for enqueued assets</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══ DATA FLOW ═══ -->
+  <section id="data-flow">
+    <h2>Request Data Flow</h2>
+
+    <h3>Set Search Flow</h3>
+    <div class="flow">
+      <div class="flow-box js">User types set #<br>clicks Search</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box js">AJAX POST<br>tee_evaluate_set</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box php">TEE_Bricklink_API<br>3× API calls</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box php">Build response<br>+ fallback logic</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box js">setData populated<br>UI rendered</div>
+    </div>
+
+    <h3>Offer Calculation Flow</h3>
+    <div class="flow">
+      <div class="flow-box js">User changes<br>any condition</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box js">AJAX POST<br>tee_calculate_offer</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box php">TEE_Evaluator_Logic<br>calculate_offer()</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box php">Acceptance check<br>+ pricing rules</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box js">Price shown<br>in result banner</div>
+    </div>
+
+    <h3>Add to Cart Flow</h3>
+    <div class="flow">
+      <div class="flow-box js">User clicks<br>"Add All to Basket"</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box js">Serial AJAX loop<br>tee_add_to_cart</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box php">WC()->cart<br>->add_to_cart()</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box wc">WC cart item<br>+ metadata</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box js">Redirect to<br>cart URL</div>
+    </div>
+
+    <div class="notice info">
+      <span class="icon">ℹ️</span>
+      <div>Cart items are added <strong>serially</strong> (one after another) rather than in parallel, because WooCommerce's AJAX cart handler can produce duplicate session IDs under concurrent requests for the same product.</div>
+    </div>
+  </section>
+
+  <!-- ═══ CLASS: MAIN ═══ -->
+  <section id="class-main">
+    <h2>Class: ToyExchangeEvaluator <span class="tag php">PHP</span></h2>
+    <p>Defined in <code>lego-evaluator.php</code>. Acts as the plugin bootstrap — registers hooks and delegates work to the other classes. Instantiated once on plugin load via <code>new ToyExchangeEvaluator();</code>.</p>
+
+    <h3>Constructor hooks</h3>
+    <table>
+      <thead><tr><th>Hook</th><th>Method</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td><code>wp_enqueue_scripts</code></td><td><code>enqueue_scripts()</code></td><td>10</td></tr>
+        <tr><td><code>wp_head</code></td><td><code>output_custom_css()</code></td><td>10</td></tr>
+        <tr><td>Shortcode <code>lego_evaluator</code></td><td><code>render_evaluator()</code></td><td>—</td></tr>
+        <tr><td><code>wp_ajax_tee_evaluate_set</code></td><td><code>ajax_evaluate_set()</code></td><td>10</td></tr>
+        <tr><td><code>wp_ajax_nopriv_tee_evaluate_set</code></td><td><code>ajax_evaluate_set()</code></td><td>10</td></tr>
+        <tr><td><code>wp_ajax_tee_calculate_offer</code></td><td><code>ajax_calculate_offer()</code></td><td>10</td></tr>
+        <tr><td><code>wp_ajax_nopriv_tee_calculate_offer</code></td><td><code>ajax_calculate_offer()</code></td><td>10</td></tr>
+        <tr><td><code>wp_ajax_tee_add_to_cart</code></td><td><code>ajax_add_to_cart()</code></td><td>10</td></tr>
+        <tr><td><code>wp_ajax_nopriv_tee_add_to_cart</code></td><td><code>ajax_add_to_cart()</code></td><td>10</td></tr>
+      </tbody>
+    </table>
+
+    <h3>enqueue_scripts()</h3>
+    <p>Enqueues <code>tee-frontend-styles</code> CSS and <code>tee-frontend-ui</code> JS. Localises <code>tee_vars</code> into the JS scope:</p>
+    <pre><code class="comment">// tee_vars object structure</code>
+{
+    ajax_url:   "/wp-admin/admin-ajax.php",
+    nonce:      "abc123...",           <span class="c">// wp_create_nonce('tee_nonce')</span>
+    product_id: "42",                  <span class="c">// WooCommerce product ID</span>
+    cart_url:   "/cart/",
+    acceptance: {
+        new_sealed: true,             <span class="c">// tee_accept_new_sealed option</span>
+        new_open:   true,
+        used_100:   true,
+        used_95:    false,
+        used_mixed: false
+    }
+}</pre>
+
+    <h3>output_custom_css()</h3>
+    <p>Outputs a <code>&lt;style id="tee-custom-styles"&gt;</code> block in <code>&lt;head&gt;</code> with CSS custom properties populated from <code>wp_options</code>. This allows the admin to change colors without touching code.</p>
+  </section>
+
+  <!-- ═══ CLASS: API ═══ -->
+  <section id="class-api">
+    <h2>Class: TEE_Bricklink_API <span class="tag php">PHP</span></h2>
+    <p>Defined in <code>includes/bricklink-api.php</code>. Handles all communication with the BrickLink REST API using OAuth 1.0a HMAC-SHA1 signing.</p>
+
+    <div class="method">
+      <div class="sig"><span class="kw">public function</span> <span class="fn">get_item_data</span>(<span class="param">$set_number</span>): <span class="ret">array|WP_Error</span></div>
+      <div class="desc">Fetches set metadata from <code>items/SET/{set_number}</code>. Appends <code>-1</code> suffix if not already present. Returns associative array with <code>no</code>, <code>name</code>, <code>weight</code>, <code>image_url</code> keys.</div>
+    </div>
+
+    <div class="method">
+      <div class="sig"><span class="kw">public function</span> <span class="fn">get_price_guide</span>(<span class="param">$set_number, $new_or_used = 'N', $item_type = 'SET'</span>): <span class="ret">array|WP_Error</span></div>
+      <div class="desc">Fetches the price guide with a 3-tier fallback strategy:<br>
+        1. GB sold listings (currency GBP)<br>
+        2. Global sold listings (all currencies)<br>
+        3. Global stock listings (items currently for sale)<br>
+        Returns array with <code>avg_price</code>, <code>qty_avg_price</code>, <code>min_price</code>, <code>max_price</code>.
+      </div>
+    </div>
+
+    <div class="method">
+      <div class="sig"><span class="kw">public function</span> <span class="fn">get_subsets</span>(<span class="param">$set_number</span>): <span class="ret">array|WP_Error</span></div>
+      <div class="desc">Fetches the breakdown of items in a set from <code>items/SET/{set_number}/subsets</code> with <code>breakdown=true</code>. Returns array of subset groups, each with an <code>entries</code> array. Only entries where <code>item.type === 'MINIFIG'</code> are used by the evaluator.</div>
+    </div>
+
+    <h3>OAuth1 Signing (private request())</h3>
+    <pre><span class="c">// Signature base string construction</span>
+<span class="n">$base_string</span> = <span class="nb">strtoupper</span>(<span class="n">$method</span>) . <span class="s">'&amp;'</span>
+             . <span class="nb">rawurlencode</span>(<span class="n">$base_url</span> . <span class="n">$endpoint</span>) . <span class="s">'&amp;'</span>
+             . <span class="nb">rawurlencode</span>(<span class="nb">http_build_query</span>(<span class="n">$all_params</span>, <span class="s">''</span>, <span class="s">'&amp;'</span>, PHP_QUERY_RFC3986));
+
+<span class="c">// Signing key</span>
+<span class="n">$signing_key</span> = <span class="nb">rawurlencode</span>(<span class="n">$consumer_secret</span>) . <span class="s">'&amp;'</span> . <span class="nb">rawurlencode</span>(<span class="n">$token_secret</span>);
+
+<span class="c">// HMAC-SHA1 signature</span>
+<span class="n">$signature</span> = <span class="nb">base64_encode</span>(<span class="nb">hash_hmac</span>(<span class="s">'sha1'</span>, <span class="n">$base_string</span>, <span class="n">$signing_key</span>, true));</pre>
+
+    <div class="notice warn">
+      <span class="icon">⚠️</span>
+      <div>All OAuth params (<code>oauth_timestamp</code>, <code>oauth_nonce</code>) must be merged with query params <strong>before</strong> sorting for the base string. Sorting is done with <code>ksort()</code>. The query params must NOT be URL-encoded twice — use <code>PHP_QUERY_RFC3986</code> in <code>http_build_query</code>.</div>
+    </div>
+
+    <h3>Debug logging</h3>
+    <p>When <code>tee_debug_mode</code> option is truthy, each API response is appended to <code>TEE_PLUGIN_DIR . 'tee-api-debug.json'</code>. The array is capped at 20 entries (oldest removed first). Each entry contains:</p>
+    <pre>{
+    "timestamp": "2025-05-08 14:23:01",
+    "endpoint":  "items/SET/75192-1/price",
+    "method":    "GET",
+    "params":    { "new_or_used": "U", "guide_type": "sold", ... },
+    "response":  { "meta": {...}, "data": {...} }
+}</pre>
+  </section>
+
+  <!-- ═══ CLASS: LOGIC ═══ -->
+  <section id="class-logic">
+    <h2>Class: TEE_Evaluator_Logic <span class="tag php">PHP</span></h2>
+    <p>Defined in <code>includes/evaluator-logic.php</code>. Contains the full pricing decision tree. Stateless — instantiated per AJAX request.</p>
+
+    <div class="method">
+      <div class="sig"><span class="kw">public function</span> <span class="fn">calculate_offer</span>(<span class="param">$set_data, $user_inputs</span>): <span class="ret">float|array</span></div>
+      <div class="desc">Returns a float (the offer in GBP, rounded to nearest £0.50) on success. Returns an associative array <code>['rejected' =&gt; true, 'rejection_url' =&gt; '...']</code> on rejection.</div>
+    </div>
+
+    <h3>Decision tree</h3>
+    <pre><span class="c">// Simplified decision tree</span>
+
+<span class="k">if</span> (set_name contains "baseplate" OR "road plate" AND condition == "used")
+    → weight-only pricing at used_mixed_rate £/KG
+    → return early
+
+<span class="k">if</span> condition == "new":
+    <span class="k">if</span> !accept_new_sealed AND seals_intact → reject
+    <span class="k">if</span> !accept_new_open  AND !seals_intact → reject
+
+    <span class="k">if</span> seals_intact:
+        offer = new_avg × new_sealed_[box_cond]%
+    <span class="k">else if</span> is_complete:
+        offer = new_avg × new_open_complete%
+        offer -= (missing_minifig_price × multiplier × count)
+    <span class="k">else</span>:
+        offer = (weight_kg × incomplete_rate) + (present_minifig_value × 25%)
+
+<span class="k">else if</span> condition == "used":
+    <span class="k">if</span> comp_level == "100" AND !accept_used_100 → reject
+    <span class="k">if</span> comp_level == "95"  AND !accept_used_95  → reject
+    <span class="k">if</span> comp_level == "less" AND !accept_used_mixed → reject
+
+    <span class="k">if</span> comp_level in ("100", "95"):
+        offer = used_avg × used_[lvl]_[built|unbuilt]%
+        offer -= initial_offer × box_ins_deduction%
+        offer -= (missing_minifig_price × multiplier × count)
+    <span class="k">else</span>:
+        offer = (weight_kg × mixed_rate) + (present_minifig_value × 25%)
+
+offer = round(offer × 2) / 2   <span class="c">// nearest £0.50</span>
+<span class="k">if</span> offer &lt;= 0 → reject</pre>
+
+    <h3>Used price fallback logic</h3>
+    <pre><span class="c">// Applied at the top of calculate_offer() before any branch</span>
+<span class="k">if</span> (empty(<span class="n">$market_prices</span>[<span class="s">'used_avg'</span>]) || (float)<span class="n">$market_prices</span>[<span class="s">'used_avg'</span>] == 0) {
+    <span class="n">$fallback_pct</span> = (float) get_option(<span class="s">'tee_used_fallback_pct'</span>, 70);
+    <span class="n">$market_prices</span>[<span class="s">'used_avg'</span>] = (float)<span class="n">$market_prices</span>[<span class="s">'new_avg'</span>] * (<span class="n">$fallback_pct</span> / 100);
+}</pre>
+
+    <div class="method">
+      <div class="sig"><span class="kw">private function</span> <span class="fn">get_tier_rules</span>(<span class="param">$market_value</span>): <span class="ret">array</span></div>
+      <div class="desc">Iterates the <code>tee_pricing_rules</code> option array and returns the first matching tier (min ≤ market_value ≤ max, where max=0 means no upper limit). Falls back to hardcoded defaults if no tier matches.</div>
+    </div>
+  </section>
+
+  <!-- ═══ CLASS: ADMIN ═══ -->
+  <section id="class-admin">
+    <h2>Class: TEE_Admin_Settings <span class="tag php">PHP</span></h2>
+    <p>Defined in <code>includes/admin-settings.php</code>. Registers the admin menu page and all plugin settings via the WordPress Settings API.</p>
+
+    <h3>Settings group</h3>
+    <p>All settings use the group <code>tee_settings_group</code>. The settings page submits to <code>options.php</code> via <code>settings_fields('tee_settings_group')</code>.</p>
+
+    <h3>Tabs</h3>
+    <p>Tab switching is handled by <code>admin-settings.js</code> — it intercepts nav link clicks, hides all <code>.tee-tab-content</code> divs, and shows the one matching the href. The active tab is persisted in <code>window.location.hash</code> so it survives page reloads.</p>
+
+    <h3>Adding a new settings field</h3>
+    <pre><span class="c">// 1. Register the setting (in register_settings())</span>
+<span class="nb">register_setting</span>(<span class="s">'tee_settings_group'</span>, <span class="s">'tee_my_new_option'</span>);
+
+<span class="c">// 2. Add the HTML field inside the appropriate tab div</span>
+&lt;tr&gt;
+    &lt;th scope="row"&gt;My New Option&lt;/th&gt;
+    &lt;td&gt;
+        &lt;input type="text" name="tee_my_new_option"
+               value="&lt;?php echo esc_attr(get_option('tee_my_new_option', 'default')); ?&gt;"&gt;
+    &lt;/td&gt;
+&lt;/tr&gt;
+
+<span class="c">// 3. Use it anywhere in the plugin</span>
+<span class="n">$value</span> = get_option(<span class="s">'tee_my_new_option'</span>, <span class="s">'default'</span>);</pre>
+  </section>
+
+  <!-- ═══ AJAX: EVALUATE ═══ -->
+  <section id="ajax-evaluate">
+    <h2>AJAX: tee_evaluate_set <span class="tag post">POST</span></h2>
+    <p>Triggered when a customer searches for a set number. Fetches all data needed to power the UI.</p>
+
+    <h3>Request</h3>
+    <table>
+      <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>action</code></td><td>string</td><td><code>"tee_evaluate_set"</code></td></tr>
+        <tr><td><code>nonce</code></td><td>string</td><td>Value of <code>tee_vars.nonce</code></td></tr>
+        <tr><td><code>set_number</code></td><td>string</td><td>Raw user input, e.g. <code>"75192"</code> or <code>"75192-1"</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Success Response</h3>
+    <pre>{
+    "success": true,
+    "data": {
+        "id":     "75192",
+        "name":   "Millennium Falcon",
+        "weight": "8016",               <span class="c">// grams (string from BrickLink)</span>
+        "image":  "https://img.bricklink.com/...",
+        "prices": {
+            "new_avg":              480.00,
+            "used_avg":             320.00,
+            "used_price_estimated": false   <span class="c">// true when fallback was applied</span>
+        },
+        "minifigs_data": {
+            "sw0001": {
+                "no":        "sw0001",
+                "name":      "Han Solo",
+                "qty":       1,
+                "price":     8.50,
+                "thumbnail": "https://img.bricklink.com/ItemImage/ML/sw0001.png"
+            }
+        },
+        "minifigs_value": 8.50           <span class="c">// total market value of all minifigs</span>
+    }
+}</pre>
+
+    <h3>Error Response</h3>
+    <pre>{ "success": false, "data": "Item not found." }</pre>
+
+    <div class="notice info">
+      <span class="icon">ℹ️</span>
+      <div>The used price fallback is applied here — if <code>used_avg</code> is 0 after all BrickLink fallbacks, it is recalculated as <code>new_avg × (tee_used_fallback_pct / 100)</code> and <code>used_price_estimated</code> is set to <code>true</code>.</div>
+    </div>
+  </section>
+
+  <!-- ═══ AJAX: CALCULATE ═══ -->
+  <section id="ajax-calculate">
+    <h2>AJAX: tee_calculate_offer <span class="tag post">POST</span></h2>
+    <p>Called every time the user changes a condition option. Receives the full set data and user inputs, runs the pricing logic, returns the offer.</p>
+
+    <h3>Request</h3>
+    <table>
+      <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>action</code></td><td>string</td><td><code>"tee_calculate_offer"</code></td></tr>
+        <tr><td><code>nonce</code></td><td>string</td><td>Nonce value</td></tr>
+        <tr><td><code>set_data</code></td><td>object</td><td>The full <code>setData</code> JS object from the evaluate response</td></tr>
+        <tr><td><code>user_inputs</code></td><td>object</td><td>See user_inputs structure below</td></tr>
+      </tbody>
+    </table>
+
+    <h3>user_inputs structure</h3>
+    <pre>{
+    condition:        "used",     <span class="c">// "new" or "used"</span>
+    seals_intact:     true,       <span class="c">// bool — new flow only</span>
+    box_condition:    "like_new", <span class="c">// "like_new"|"fair"|"bad" — new sealed only</span>
+    is_complete:      true,       <span class="c">// bool — new open only</span>
+    completion_level: "100",      <span class="c">// "100"|"95"|"less" — used only</span>
+    is_built:         true,       <span class="c">// bool — used 100/95 only</span>
+    weight:           8016,       <span class="c">// grams — weight-based paths</span>
+    has_box:          true,       <span class="c">// bool — used 100/95 only</span>
+    has_instructions: false,      <span class="c">// bool — used 100/95 only</span>
+    missing_minifigs: {           <span class="c">// key=minifig_id, value=count missing</span>
+        "sw0001": 1
+    }
+}</pre>
+
+    <h3>Success Response — Normal</h3>
+    <pre>{ "success": true, "data": { "offer": "121.00", "weight": "8016" } }</pre>
+
+    <h3>Success Response — Rejected</h3>
+    <pre>{ "success": true, "data": { "rejected": true, "rejection_url": "https://..." } }</pre>
+
+    <div class="notice tip">
+      <span class="icon">💡</span>
+      <div>Boolean strings from jQuery AJAX serialisation (e.g. <code>"true"</code>, <code>"false"</code>) are converted to actual PHP booleans in <code>ajax_calculate_offer()</code> using <code>FILTER_VALIDATE_BOOLEAN</code> before being passed to the logic class.</div>
+    </div>
+  </section>
+
+  <!-- ═══ AJAX: CART ═══ -->
+  <section id="ajax-cart">
+    <h2>AJAX: tee_add_to_cart <span class="tag post">POST</span></h2>
+    <p>Adds a single evaluated set to the WooCommerce cart. Called in a serial loop for each accepted evaluation.</p>
+
+    <h3>Request</h3>
+    <table>
+      <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><code>product_id</code></td><td>int</td><td>From <code>tee_vars.product_id</code></td></tr>
+        <tr><td><code>price</code></td><td>float</td><td>Offer amount in GBP</td></tr>
+        <tr><td><code>metadata</code></td><td>object</td><td>Key-value pairs stored as order item meta</td></tr>
+        <tr><td><code>metadata.image</code></td><td>string</td><td>BrickLink image URL — stored separately as <code>_tee_image_url</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Cart Item Data Structure</h3>
+    <pre><span class="c">// Stored in $cart_item['tee_evaluation']</span>
+[
+    'price'   =&gt; 121.00,
+    'details' =&gt; [
+        'Set'     =&gt; 'Millennium Falcon (75192)',
+        'Details' =&gt; 'USED | 100% Complete | Dismantled | Box Only',
+        'Weight'  =&gt; '8016g',
+        'image'   =&gt; 'https://...'   <span class="c">// excluded from displayed meta</span>
+    ],
+    'image' =&gt; 'https://img.bricklink.com/...'
+]</pre>
+
+    <h3>Success Response</h3>
+    <pre>{ "success": true, "data": { "redirect": "https://site.com/cart/" } }</pre>
+  </section>
+
+  <!-- ═══ JS STATE ═══ -->
+  <section id="js-state">
+    <h2>Frontend JS — State Management <span class="tag js">JS</span></h2>
+    <p>All state is held in three module-level variables inside the jQuery <code>document.ready</code> closure:</p>
+    <pre><span class="k">var</span> setData       = null;  <span class="c">// Response from tee_evaluate_set</span>
+<span class="k">var</span> agreementList = [];    <span class="c">// Array of accepted evaluations pending cart add</span>
+<span class="k">var</span> userInputs    = {};    <span class="c">// Current form state (see calculate_offer request docs)</span></pre>
+
+    <h3>resetSetState()</h3>
+    <p>Called on every new set search. Resets <code>userInputs</code> to safe defaults using the acceptance helpers — so the defaults always reflect the currently enabled options.</p>
+
+    <h3>agreementList item structure</h3>
+    <pre>{
+    id:       "75192",
+    name:     "Millennium Falcon",
+    offer:    121.00,
+    weight:   8016,             <span class="c">// grams</span>
+    image:    "https://...",
+    metadata: "USED | 100% Complete | Dismantled | Box Only"
+}</pre>
+  </section>
+
+  <!-- ═══ JS ACCEPTANCE ═══ -->
+  <section id="js-acceptance">
+    <h2>Frontend JS — Acceptance Helpers <span class="tag js">JS</span></h2>
+    <p>A set of small functions that read <code>tee_vars.acceptance</code> (populated from PHP options at page load) and determine what to show in the UI.</p>
+
+    <pre><span class="c">// Safe reference to acceptance object with fallback (all enabled)</span>
+<span class="k">var</span> _acc = (tee_vars.acceptance)
+    ? tee_vars.acceptance
+    : { new_sealed: true, new_open: true, used_100: true, used_95: true, used_mixed: true };
+
+<span class="c">// Returns "used" or "new" depending on which condition types are enabled</span>
+<span class="k">function</span> getDefaultCondition() { ... }
+
+<span class="c">// Returns "100", "95", or "less" — first enabled completion level</span>
+<span class="k">function</span> getDefaultCompletion() { ... }
+
+<span class="c">// Returns true (seals intact) or false (open) based on which new types are enabled</span>
+<span class="k">function</span> getDefaultSeals() { ... }
+
+<span class="c">// Shows/hides New and Used condition cards based on whether any subtypes are enabled</span>
+<span class="k">function</span> initConditionCards() { ... }</pre>
+
+    <div class="notice tip">
+      <span class="icon">💡</span>
+      <div><code>initConditionCards()</code> is called once on page load and does not need to be called again — the acceptance settings are static per page load (they come from PHP). If you need to dynamically update them, you would need to re-localise <code>tee_vars</code> or fetch them via a separate AJAX call.</div>
+    </div>
+  </section>
+
+  <!-- ═══ JS FLOWS ═══ -->
+  <section id="js-flows">
+    <h2>Frontend JS — Render Flows <span class="tag js">JS</span></h2>
+
+    <h3>renderDynamicFlow()</h3>
+    <p>The central rendering function. Called whenever user state changes. Clears the question container and delegates to <code>renderNewFlow()</code> or <code>renderUsedFlow()</code>, then calls <code>updateMinifigsUI()</code> and <code>calculateOffer()</code>.</p>
+
+    <h3>renderNewFlow(container)</h3>
+    <p>Renders questions for the New condition path:</p>
+    <ul class="plain">
+      <li>Builds filtered <code>sealOpts</code> array from <code>_acc.new_sealed</code> / <code>_acc.new_open</code></li>
+      <li>If only one option available, auto-selects it (sets <code>userInputs.seals_intact</code>)</li>
+      <li>If seals intact → renders box condition swatches (Like New / Fair / Bad)</li>
+      <li>If seals broken → renders completeness swatches → weight input if incomplete</li>
+    </ul>
+
+    <h3>renderUsedFlow(container)</h3>
+    <p>Renders questions for the Used condition path:</p>
+    <ul class="plain">
+      <li>Builds filtered <code>compOpts</code> array from <code>_acc.used_100/95/mixed</code></li>
+      <li>Resets <code>userInputs.completion_level</code> if current value no longer in available options</li>
+      <li>Renders estimated-price notice if <code>setData.prices.used_price_estimated === true</code></li>
+      <li>Renders completeness swatches → built/unbuilt + box/instructions swatches if not "less"</li>
+      <li>Renders weight input if "less"</li>
+    </ul>
+
+    <h3>renderSwatches(field, options, currentValue)</h3>
+    <p>Pure function — creates a <code>.tee-swatch-group</code> element from an array of <code>{label, value, desc}</code> objects. Marks the matching option as <code>active</code>. Returns the jQuery element without appending it.</p>
+
+    <h3>bindDynamicEvents()</h3>
+    <p>Called at the end of each render flow. Re-binds <code>.on('click')</code> to all <code>.tee-swatch</code> elements (using <code>.off('click').on('click')</code> to prevent duplicate handlers). Also binds the weight input change event.</p>
+  </section>
+
+  <!-- ═══ WC HOOKS ═══ -->
+  <section id="wc-hooks">
+    <h2>WooCommerce Hooks <span class="tag wc">WooCommerce</span></h2>
+    <p>These hooks are registered as global functions (outside the class) in <code>lego-evaluator.php</code>.</p>
+
+    <div class="hook">
+      <span class="hook-name">woocommerce_before_calculate_totals</span>
+      <span class="hook-type action">action</span>
+      <p>Function: <code>tee_override_cart_item_price()</code>. Iterates cart items, overrides price with <code>tee_evaluation.price</code>, and sets weight (converted from grams to WC weight unit) on each evaluated item.</p>
+    </div>
+
+    <div class="hook">
+      <span class="hook-name">woocommerce_get_item_data</span>
+      <span class="hook-type filter">filter</span>
+      <p>Function: <code>tee_display_cart_item_evaluation_details()</code>. Adds each evaluation detail key-value pair to the cart item meta display. Skips the <code>image</code> key.</p>
+    </div>
+
+    <div class="hook">
+      <span class="hook-name">woocommerce_checkout_create_order_line_item</span>
+      <span class="hook-type action">action</span>
+      <p>Function: <code>tee_add_evaluation_to_order_items()</code>. Persists all evaluation details as order item meta. Also saves <code>_tee_image_url</code> (hidden) and <code>_tee_weight_grams</code> (hidden) for admin and shipping use.</p>
+    </div>
+
+    <div class="hook">
+      <span class="hook-name">woocommerce_order_item_product</span>
+      <span class="hook-type filter">filter</span>
+      <p>Function: <code>tee_override_order_item_product_weight()</code>. Called when shipping plugins (e.g. EasyPost) read the product weight from an order item. Reads <code>_tee_weight_grams</code> meta and converts to WC weight unit before calling <code>$product->set_weight()</code>.</p>
+    </div>
+
+    <div class="hook">
+      <span class="hook-name">woocommerce_cart_item_thumbnail</span>
+      <span class="hook-type filter">filter</span>
+      <p>Function: <code>tee_override_cart_item_thumbnail()</code>. Replaces the generic product thumbnail with the LEGO set image from BrickLink in the cart page.</p>
+    </div>
+
+    <div class="hook">
+      <span class="hook-name">woocommerce_admin_order_item_thumbnail</span>
+      <span class="hook-type filter">filter</span>
+      <p>Function: <code>tee_override_admin_order_item_thumbnail()</code>. Same as above but for the WooCommerce admin order edit screen. Reads <code>_tee_image_url</code> order item meta.</p>
+    </div>
+
+    <div class="notice warn">
+      <span class="icon">⚠️</span>
+      <div><code>tee_override_cart_item_price</code> uses a guard: <code>if ( did_action('woocommerce_before_calculate_totals') >= 2 ) return;</code> to prevent infinite loops from WooCommerce recalculating totals inside hooks.</div>
+    </div>
+  </section>
+
+  <!-- ═══ OPTIONS REFERENCE ═══ -->
+  <section id="options">
+    <h2>All wp_options Keys</h2>
+    <table>
+      <thead><tr><th>Option Key</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><span class="opt-key">tee_bricklink_consumer_key</span></td><td>string</td><td>''</td><td>BrickLink OAuth consumer key</td></tr>
+        <tr><td><span class="opt-key">tee_bricklink_consumer_secret</span></td><td>string</td><td>''</td><td>BrickLink OAuth consumer secret</td></tr>
+        <tr><td><span class="opt-key">tee_bricklink_token_value</span></td><td>string</td><td>''</td><td>BrickLink OAuth token value</td></tr>
+        <tr><td><span class="opt-key">tee_bricklink_token_secret</span></td><td>string</td><td>''</td><td>BrickLink OAuth token secret</td></tr>
+        <tr><td><span class="opt-key">tee_pricing_rules</span></td><td>array</td><td>[ ]</td><td>Serialised array of pricing tier rules</td></tr>
+        <tr><td><span class="opt-key">tee_condition_rules</span></td><td>array</td><td>[ ]</td><td>Serialised array of condition/deduction percentages</td></tr>
+        <tr><td><span class="opt-key">tee_default_product_id</span></td><td>int</td><td>—</td><td>WooCommerce product ID used for cart additions</td></tr>
+        <tr><td><span class="opt-key">tee_accept_new_sealed</span></td><td>'0'/'1'</td><td>1</td><td>Toggle: accept New Seals Intact sets</td></tr>
+        <tr><td><span class="opt-key">tee_accept_new_open</span></td><td>'0'/'1'</td><td>1</td><td>Toggle: accept New Open Box sets</td></tr>
+        <tr><td><span class="opt-key">tee_accept_used_100</span></td><td>'0'/'1'</td><td>1</td><td>Toggle: accept Used 100% Complete</td></tr>
+        <tr><td><span class="opt-key">tee_accept_used_95</span></td><td>'0'/'1'</td><td>1</td><td>Toggle: accept Used Over 95% Complete</td></tr>
+        <tr><td><span class="opt-key">tee_accept_used_mixed</span></td><td>'0'/'1'</td><td>1</td><td>Toggle: accept Used Under 95% / Mixed</td></tr>
+        <tr><td><span class="opt-key">tee_used_fallback_pct</span></td><td>int</td><td>70</td><td>% of new price to use as estimated used price when BrickLink has no data</td></tr>
+        <tr><td><span class="opt-key">tee_debug_mode</span></td><td>'0'/'1'</td><td>0</td><td>Enable API request logging to JSON file</td></tr>
+        <tr><td><span class="opt-key">tee_primary_color</span></td><td>string</td><td>#1a1a1a</td><td>CSS --tee-primary variable</td></tr>
+        <tr><td><span class="opt-key">tee_accent_color</span></td><td>string</td><td>#10b981</td><td>CSS --tee-accent variable</td></tr>
+        <tr><td><span class="opt-key">tee_result_bg_color</span></td><td>string</td><td>#ecfdf5</td><td>Result banner background</td></tr>
+        <tr><td><span class="opt-key">tee_max_width</span></td><td>string</td><td>800px</td><td>Evaluator container max-width CSS value</td></tr>
+        <tr><td><span class="opt-key">tee_margin</span></td><td>string</td><td>20px auto</td><td>Evaluator container margin CSS value</td></tr>
+        <tr><td><span class="opt-key">tee_font_family</span></td><td>string</td><td>inherit</td><td>Evaluator font-family CSS value</td></tr>
+        <tr><td><span class="opt-key">tee_text_color</span></td><td>string</td><td>inherit</td><td>Evaluator base text color</td></tr>
+        <tr><td><span class="opt-key">tee_card_bg</span></td><td>string</td><td>#ffffff</td><td>Card background color</td></tr>
+        <tr><td><span class="opt-key">tee_border_color</span></td><td>string</td><td>#ebedf0</td><td>Card border color</td></tr>
+        <tr><td><span class="opt-key">tee_bg_subtle</span></td><td>string</td><td>#f9fafb</td><td>Subtle/secondary background</td></tr>
+        <tr><td><span class="opt-key">tee_success_border</span></td><td>string</td><td>#d1fae5</td><td>Result banner border color</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ═══ EXTENDING: LOGIC ═══ -->
+  <section id="extending-logic">
+    <h2>Extending: Custom Offer Logic</h2>
+    <p>The cleanest way to add a new set category filter or pricing rule without modifying core files is to extend <code>TEE_Evaluator_Logic</code>.</p>
+
+    <pre><span class="c">// my-plugin/my-extension.php</span>
+
+<span class="k">class</span> <span class="n">My_TEE_Evaluator_Logic</span> <span class="k">extends</span> <span class="n">TEE_Evaluator_Logic</span> {
+
+    <span class="k">public function</span> <span class="n">calculate_offer</span>(<span class="n">$set_data</span>, <span class="n">$user_inputs</span>) {
+
+        <span class="c">// Example: treat "Technic" sets as a special category</span>
+        <span class="n">$name</span> = <span class="nb">strtolower</span>(<span class="n">$set_data</span>[<span class="s">'name'</span>] ?? <span class="s">''</span>);
+        <span class="k">if</span> (<span class="nb">strpos</span>(<span class="n">$name</span>, <span class="s">'technic'</span>) !== false &amp;&amp; <span class="n">$user_inputs</span>[<span class="s">'condition'</span>] === <span class="s">'used'</span>) {
+            <span class="c">// Apply a flat 60% of used average for Technic sets</span>
+            <span class="n">$used_avg</span> = (float) <span class="n">$set_data</span>[<span class="s">'prices'</span>][<span class="s">'used_avg'</span>];
+            <span class="n">$offer</span>    = <span class="nb">round</span>(<span class="n">$used_avg</span> * 0.60 * 2) / 2;
+            <span class="k">return</span> <span class="n">$offer</span> &gt; 0 ? <span class="n">$offer</span> : [<span class="s">'rejected'</span> =&gt; true, <span class="s">'rejection_url'</span> =&gt; <span class="s">'#'</span>];
+        }
+
+        <span class="c">// Fall back to original logic for all other sets</span>
+        <span class="k">return</span> <span class="k">parent</span>::<span class="n">calculate_offer</span>(<span class="n">$set_data</span>, <span class="n">$user_inputs</span>);
+    }
+}
+
+<span class="c">// Replace the logic class in the AJAX handler</span>
+add_action(<span class="s">'wp_ajax_tee_calculate_offer'</span>, <span class="k">function</span>() {
+    <span class="c">// ... same as original but using My_TEE_Evaluator_Logic instead</span>
+    <span class="n">$evaluator</span>   = <span class="k">new</span> <span class="n">My_TEE_Evaluator_Logic</span>();
+    <span class="n">$calc_result</span> = <span class="n">$evaluator</span>-&gt;<span class="n">calculate_offer</span>(<span class="n">$set_data</span>, <span class="n">$user_inputs</span>);
+    wp_send_json_success(...);</pre>
+  </section>
+
+  <!-- ═══ EXTENDING: API ═══ -->
+  <section id="extending-api">
+    <h2>Extending: New BrickLink API Calls</h2>
+    <p>To add a new BrickLink API endpoint, add a public method to <code>TEE_Bricklink_API</code> (or extend it) that calls the private <code>request()</code> method.</p>
+
+    <pre><span class="c">// Example: get a set's known colors</span>
+<span class="k">public function</span> <span class="n">get_item_colors</span>(<span class="n">$set_number</span>) {
+    <span class="k">if</span> (<span class="nb">strpos</span>(<span class="n">$set_number</span>, <span class="s">'-'</span>) === false) {
+        <span class="n">$set_number</span> .= <span class="s">'-1'</span>;
+    }
+    <span class="k">return</span> <span class="n">$this</span>-&gt;<span class="n">request</span>(<span class="s">'GET'</span>, <span class="s">"items/SET/{$set_number}/colors"</span>);
+}</pre>
+
+    <p>The <code>request()</code> method automatically handles OAuth signing, the BrickLink base URL, debug logging, and error wrapping into <code>WP_Error</code>.</p>
+  </section>
+
+  <!-- ═══ DEBUGGING ═══ -->
+  <section id="debugging">
+    <h2>Debugging</h2>
+
+    <h3>Enable Debug Mode</h3>
+    <p>In <em>LEGO Evaluator → General Settings</em>, check <strong>Debug Mode</strong>. All BrickLink API calls will then be logged to <code>wp-content/plugins/lego-evaluator/tee-api-debug.json</code>. View them in the Logs tab.</p>
+
+    <h3>Common issues</h3>
+    <table>
+      <thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Set not found / API error</td><td>Invalid set number or wrong number format</td><td>Check the set number on bricklink.com first. Plugin auto-appends <code>-1</code> suffix.</td></tr>
+        <tr><td>All prices are £0</td><td>BrickLink API credentials incorrect or expired</td><td>Re-enter all four credential fields. Check Logs tab for the raw API error message.</td></tr>
+        <tr><td>Used price is too low</td><td>BrickLink has no used data — fallback was applied</td><td>Check <code>used_price_estimated</code> in the Logs response. Adjust fallback % in Condition Rules.</td></tr>
+        <tr><td>Wrong weight in shipping</td><td>Weight unit mismatch</td><td>Confirm WooCommerce weight unit (WC → Settings → General). Plugin converts grams to that unit.</td></tr>
+        <tr><td>Cart item shows £0</td><td>Product ID not set or product deleted</td><td>Go to General Settings and re-select the shell product.</td></tr>
+        <tr><td>Acceptance toggle has no effect</td><td>Page caching serving stale <code>tee_vars</code></td><td>Flush your page cache after changing toggles (e.g. WP Rocket, W3 Total Cache).</td></tr>
+        <tr><td>Minifig prices all £0</td><td>No used price data for that minifigure</td><td>Check the minifig's number on BrickLink. Low-value figs often have sparse data — this is expected.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>PHP error logging</h3>
+    <p>The plugin uses <code>error_log()</code> for non-fatal BrickLink errors. Check your server's PHP error log (or <code>wp-content/debug.log</code> with <code>WP_DEBUG_LOG</code> enabled) for lines prefixed with <code>TEE Bricklink</code>.</p>
+    <pre><span class="c">// Example WordPress wp-config.php debug setup</span>
+define(<span class="s">'WP_DEBUG'</span>,         true);
+define(<span class="s">'WP_DEBUG_LOG'</span>,     true);
+define(<span class="s">'WP_DEBUG_DISPLAY'</span>, false);</pre>
+
+    <h3>Manually testing the calculation logic</h3>
+    <pre><span class="c">// Quick CLI test (requires WordPress environment)</span>
+<span class="n">$logic</span> = <span class="k">new</span> <span class="n">TEE_Evaluator_Logic</span>();
+<span class="n">$result</span> = <span class="n">$logic</span>-&gt;calculate_offer([
+    <span class="s">'name'</span>         =&gt; <span class="s">'Millennium Falcon'</span>,
+    <span class="s">'weight'</span>       =&gt; <span class="s">'8016'</span>,
+    <span class="s">'prices'</span>       =&gt; [<span class="s">'new_avg'</span> =&gt; 480, <span class="s">'used_avg'</span> =&gt; 320],
+    <span class="s">'minifigs_data'</span> =&gt; []
+], [
+    <span class="s">'condition'</span>        =&gt; <span class="s">'used'</span>,
+    <span class="s">'completion_level'</span> =&gt; <span class="s">'100'</span>,
+    <span class="s">'is_built'</span>         =&gt; true,
+    <span class="s">'has_box'</span>          =&gt; true,
+    <span class="s">'has_instructions'</span> =&gt; false,
+    <span class="s">'missing_minifigs'</span> =&gt; [],
+    <span class="s">'weight'</span>           =&gt; 8016
+]);
+var_dump(<span class="n">$result</span>); <span class="c">// float(136.5)</span></pre>
+  </section>
+
+</main>
+</div>
+
+<script>
+  var sections = document.querySelectorAll('section[id]');
+  var navLinks = document.querySelectorAll('nav a');
+  window.addEventListener('scroll', function() {
+    var scrollY = window.scrollY + 80;
+    sections.forEach(function(s) {
+      if (s.offsetTop <= scrollY && s.offsetTop + s.offsetHeight > scrollY) {
+        navLinks.forEach(function(a) {
+          a.classList.toggle('active', a.getAttribute('href') === '#' + s.id);
+        });
+      }
+    });
+  });
+</script>
+</body>
+</html>
