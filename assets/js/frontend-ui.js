@@ -22,9 +22,7 @@ jQuery(document).ready(function ($) {
         return !!_acc.new_sealed;
     }
     function initConditionCards() {
-        var newEnabled = _acc.new_sealed || _acc.new_open;
-        $('.tee-cond-card[data-cond="new"]').toggle(!!newEnabled);
-        // Used card always visible — Under 95% / Mixed LEGO route is always shown
+        // Both condition cards are always visible; disabled notices appear inline within each flow
     }
 
     // Initialization
@@ -120,17 +118,39 @@ jQuery(document).ready(function ($) {
     }
 
     function renderNewFlow(container) {
-        // Q: Seals Intact? — filter options to only show accepted types
-        var sealOpts = [];
-        if (_acc.new_sealed) sealOpts.push({ label: 'Yes', value: true,  desc: 'Original tape/seals unbroken' });
-        if (_acc.new_open)   sealOpts.push({ label: 'No',  value: false, desc: 'Seals cut or box opened' });
-        // If only one option is available, auto-select it
-        if (sealOpts.length === 1) userInputs.seals_intact = (sealOpts[0].value === true);
+        var noticeHtml =
+            '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;' +
+            'padding:13px 16px;margin:10px 0 14px;font-size:13.5px;color:#78350f;line-height:1.5;">' +
+            '<strong>We\'re not currently accepting incomplete sets for individual evaluations.</strong><br>' +
+            'You can still sell your LEGO by weight — enter the weight below and see our Mixed LEGO offer.' +
+            '</div>';
+
+        var sealOpts = [
+            { label: 'Yes', value: true,  desc: 'Original tape/seals unbroken' },
+            { label: 'No',  value: false, desc: 'Seals cut or box opened' }
+        ];
+
+        // Determine if the currently selected seal option is disabled
+        var sealDisabled = (userInputs.seals_intact === true  && !_acc.new_sealed) ||
+                           (userInputs.seals_intact === false && !_acc.new_open);
+
+        // Hide the disabled swatch when showing its notice
+        if (userInputs.seals_intact === true && !_acc.new_sealed) {
+            sealOpts = sealOpts.filter(function(o) { return o.value !== true; });
+        } else if (userInputs.seals_intact === false && !_acc.new_open) {
+            sealOpts = sealOpts.filter(function(o) { return o.value !== false; });
+        }
 
         container.append('<label class="tee-question-label">Are all box seals intact?</label>');
         container.append(renderSwatches('seals_intact', sealOpts, userInputs.seals_intact));
 
-        if (userInputs.seals_intact) {
+        if (sealDisabled) {
+            container.append(noticeHtml);
+            container.append($('<div class="tee-question-item">' +
+                '<label class="tee-question-label">Enter the weight of the set (grams)</label>' +
+                '<input type="number" id="tee-weight-input" class="tee-input" value="' + userInputs.weight + '">' +
+                '</div>'));
+        } else if (userInputs.seals_intact) {
             // Seals Yes: Box Condition
             container.append('<label class="tee-question-label">What is the box condition?</label>');
             container.append(renderSwatches('box_condition', [
@@ -147,12 +167,10 @@ jQuery(document).ready(function ($) {
             ], userInputs.is_complete));
 
             if (!userInputs.is_complete) {
-                // Incomplete: Weight
-                var qWeight = $('<div class="tee-question-item">' +
+                container.append($('<div class="tee-question-item">' +
                     '<label class="tee-question-label">Enter weight of all bags present (grams)</label>' +
                     '<input type="number" id="tee-weight-input" class="tee-input" value="' + userInputs.weight + '">' +
-                    '</div>');
-                container.append(qWeight);
+                    '</div>'));
             }
         }
 
@@ -160,21 +178,42 @@ jQuery(document).ready(function ($) {
     }
 
     function renderUsedFlow(container) {
-        // Q: How complete?
-        // Under 95% is ALWAYS included so the Mixed LEGO route is always visible to customers.
-        // When the used_mixed toggle is off the backend rejects it and shows the Mixed LEGO message.
-        var compOpts = [];
-        if (_acc.used_100) compOpts.push({ label: '100% Complete', value: '100',  desc: 'Includes all minifigures' });
-        if (_acc.used_95)  compOpts.push({ label: 'Over 95%',      value: '95',   desc: 'Missing minor parts' });
-        compOpts.push(      { label: 'Under 95%',      value: 'less', desc: 'Incomplete/Mixed' });
+        var noticeHtml =
+            '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;' +
+            'padding:13px 16px;margin:10px 0 14px;font-size:13.5px;color:#78350f;line-height:1.5;">' +
+            '<strong>We\'re not currently accepting incomplete sets for individual evaluations.</strong><br>' +
+            'You can still sell your LEGO by weight — enter the weight below and see our Mixed LEGO offer.' +
+            '</div>';
+
+        // All 3 completion options always available
+        var compOpts = [
+            { label: '100% Complete', value: '100',  desc: 'Includes all minifigures' },
+            { label: 'Over 95%',      value: '95',   desc: 'Missing minor parts' },
+            { label: 'Under 95%',     value: 'less', desc: 'Incomplete/Mixed' }
+        ];
 
         // FIX: jQuery auto-parses numeric data-value attributes as integers (e.g. 95, 100).
         // Use String() on both sides so indexOf('95') !== indexOf(95) doesn't reset the selection.
         var completionStr = String(userInputs.completion_level);
-        var validVals     = compOpts.map(function(o) { return String(o.value); });
-        if (validVals.length > 0 && validVals.indexOf(completionStr) === -1) {
-            userInputs.completion_level = compOpts[0].value;
-            completionStr = String(compOpts[0].value);
+
+        // Determine if the currently selected option is disabled
+        var compDisabled = (completionStr === '100' && !_acc.used_100) ||
+                           (completionStr === '95'  && !_acc.used_95);
+
+        if (compDisabled) {
+            // Hide the disabled swatch when its notice is shown
+            if (completionStr === '100') {
+                compOpts = compOpts.filter(function(o) { return o.value !== '100'; });
+            } else if (completionStr === '95') {
+                compOpts = compOpts.filter(function(o) { return o.value !== '95'; });
+            }
+        } else {
+            // Only reset to first valid option when no disabled-notice is being shown
+            var validVals = compOpts.map(function(o) { return String(o.value); });
+            if (validVals.length > 0 && validVals.indexOf(completionStr) === -1) {
+                userInputs.completion_level = compOpts[0].value;
+                completionStr = String(compOpts[0].value);
+            }
         }
 
         // Show estimated-price notice if BrickLink had no used data
@@ -183,17 +222,23 @@ jQuery(document).ready(function ($) {
         }
 
         container.append('<label class="tee-question-label">How complete is the set?</label>');
-        container.append(renderSwatches('completion_level', compOpts, userInputs.completion_level));
+        container.append(renderSwatches('completion_level', compOpts, completionStr));
 
-        if (completionStr !== 'less') {
-            // Built?
+        if (compDisabled) {
+            // 100% or Over 95% selected but disabled — show notice + weight input
+            container.append(noticeHtml);
+            container.append($('<div class="tee-question-item">' +
+                '<label class="tee-question-label">Enter the weight of the set (grams)</label>' +
+                '<input type="number" id="tee-weight-input" class="tee-input" value="' + userInputs.weight + '">' +
+                '</div>'));
+        } else if (completionStr !== 'less') {
+            // 100% or Over 95% selected and enabled — show built/details questions
             container.append('<label class="tee-question-label">Is the set built up?</label>');
             container.append(renderSwatches('is_built', [
                 { label: 'Yes', value: true, desc: 'Currently assembled' },
                 { label: 'No', value: false, desc: 'Partially or fully dismantled' }
             ], userInputs.is_built));
 
-            // Box/Instructions (Converted to Swatch)
             container.append('<label class="tee-question-label">Additional Details</label>');
             var detailVal = 'none';
             if (userInputs.has_box && userInputs.has_instructions) detailVal = 'both';
@@ -207,22 +252,14 @@ jQuery(document).ready(function ($) {
                 { label: 'Neither', value: 'none' }
             ], detailVal));
         } else {
-            // Under 95% selected
+            // Under 95% selected — always show weight input; add notice if toggle is off
             if (!_acc.used_mixed) {
-                // Toggle is off: inform customer they can still sell as Mixed LEGO by weight
-                container.append(
-                    '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;' +
-                    'padding:13px 16px;margin:10px 0 14px;font-size:13.5px;color:#78350f;line-height:1.5;">' +
-                    '<strong>We\'re not currently accepting incomplete sets for individual evaluations.</strong><br>' +
-                    'You can still sell your LEGO by weight — enter the weight below and see our Mixed LEGO offer.' +
-                    '</div>'
-                );
+                container.append(noticeHtml);
             }
-            var qWeight = $('<div class="tee-question-item">' +
+            container.append($('<div class="tee-question-item">' +
                 '<label class="tee-question-label">Enter the weight of the set (grams)</label>' +
                 '<input type="number" id="tee-weight-input" class="tee-input" value="' + userInputs.weight + '">' +
-                '</div>');
-            container.append(qWeight);
+                '</div>'));
         }
 
         bindDynamicEvents();
