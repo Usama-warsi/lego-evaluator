@@ -22,10 +22,9 @@ jQuery(document).ready(function ($) {
         return !!_acc.new_sealed;
     }
     function initConditionCards() {
-        var newEnabled  = _acc.new_sealed || _acc.new_open;
-        var usedEnabled = _acc.used_100 || _acc.used_95 || _acc.used_mixed;
+        var newEnabled = _acc.new_sealed || _acc.new_open;
         $('.tee-cond-card[data-cond="new"]').toggle(!!newEnabled);
-        $('.tee-cond-card[data-cond="used"]').toggle(!!usedEnabled);
+        // Used card always visible — Under 95% / Mixed LEGO route is always shown
     }
 
     // Initialization
@@ -161,15 +160,21 @@ jQuery(document).ready(function ($) {
     }
 
     function renderUsedFlow(container) {
-        // Q: How complete? — filter options to only show accepted completion levels
+        // Q: How complete?
+        // Under 95% is ALWAYS included so the Mixed LEGO route is always visible to customers.
+        // When the used_mixed toggle is off the backend rejects it and shows the Mixed LEGO message.
         var compOpts = [];
-        if (_acc.used_100)   compOpts.push({ label: '100% Complete', value: '100',  desc: 'Includes all minifigures' });
-        if (_acc.used_95)    compOpts.push({ label: 'Over 95%',      value: '95',   desc: 'Missing minor parts' });
-        if (_acc.used_mixed) compOpts.push({ label: 'Under 95%',     value: 'less', desc: 'Incomplete/Mixed' });
-        // If current value is no longer available, reset to first available option
-        var validVals = compOpts.map(function(o) { return o.value; });
-        if (validVals.length > 0 && validVals.indexOf(userInputs.completion_level) === -1) {
+        if (_acc.used_100) compOpts.push({ label: '100% Complete', value: '100',  desc: 'Includes all minifigures' });
+        if (_acc.used_95)  compOpts.push({ label: 'Over 95%',      value: '95',   desc: 'Missing minor parts' });
+        compOpts.push(      { label: 'Under 95%',      value: 'less', desc: 'Incomplete/Mixed' });
+
+        // FIX: jQuery auto-parses numeric data-value attributes as integers (e.g. 95, 100).
+        // Use String() on both sides so indexOf('95') !== indexOf(95) doesn't reset the selection.
+        var completionStr = String(userInputs.completion_level);
+        var validVals     = compOpts.map(function(o) { return String(o.value); });
+        if (validVals.length > 0 && validVals.indexOf(completionStr) === -1) {
             userInputs.completion_level = compOpts[0].value;
+            completionStr = String(compOpts[0].value);
         }
 
         // Show estimated-price notice if BrickLink had no used data
@@ -180,7 +185,7 @@ jQuery(document).ready(function ($) {
         container.append('<label class="tee-question-label">How complete is the set?</label>');
         container.append(renderSwatches('completion_level', compOpts, userInputs.completion_level));
 
-        if (userInputs.completion_level !== 'less') {
+        if (completionStr !== 'less') {
             // Built?
             container.append('<label class="tee-question-label">Is the set built up?</label>');
             container.append(renderSwatches('is_built', [
@@ -202,7 +207,17 @@ jQuery(document).ready(function ($) {
                 { label: 'Neither', value: 'none' }
             ], detailVal));
         } else {
-            // Under 95%: Weight
+            // Under 95% selected
+            if (!_acc.used_mixed) {
+                // Toggle is off: inform customer they can still sell as Mixed LEGO by weight
+                container.append(
+                    '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;' +
+                    'padding:13px 16px;margin:10px 0 14px;font-size:13.5px;color:#78350f;line-height:1.5;">' +
+                    '<strong>We\'re not currently accepting incomplete sets for individual evaluations.</strong><br>' +
+                    'You can still sell your LEGO by weight — enter the weight below and see our Mixed LEGO offer.' +
+                    '</div>'
+                );
+            }
             var qWeight = $('<div class="tee-question-item">' +
                 '<label class="tee-question-label">Enter the weight of the set (grams)</label>' +
                 '<input type="number" id="tee-weight-input" class="tee-input" value="' + userInputs.weight + '">' +
