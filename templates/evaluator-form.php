@@ -28,14 +28,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
     <!-- Search Section -->
     <div class="tee-card tee-search-card">
-        <h3><?php _e( 'Enter a LEGO Set number to get your valuation', 'toy-exchange-evaluator' ); ?></h3>
+        <h3><?php _e( 'Search for your LEGO Set', 'toy-exchange-evaluator' ); ?></h3>
         <p class="tee-search-desc"><?php _e( 'Each box sent to us can weigh up to 18KG, please add items to your quote until your shipping box is full, or the max weight is achieved - our system will notify you when the weight limit has been met.', 'toy-exchange-evaluator' ); ?></p>
         <div class="tee-input-group">
-            <input type="text" id="tee-set-number" placeholder="<?php _e( 'Enter LEGO Set number', 'toy-exchange-evaluator' ); ?>" class="tee-input">
+            <input type="text" id="tee-set-number" placeholder="<?php _e( 'Search by name or enter set number…', 'toy-exchange-evaluator' ); ?>" class="tee-input" autocomplete="off">
             <button id="tee-search-set" class="tee-btn-dark">
                 <span class="dashicons dashicons-search"></span> <?php _e( 'Search', 'toy-exchange-evaluator' ); ?>
             </button>
         </div>
+
+        <!-- Name search results grid (populated by Rebrickable) -->
+        <div id="tee-name-search-results" style="display:none; margin-top:16px;"></div>
+
         <div id="tee-set-preview" class="tee-set-preview" style="display:none; margin-top:20px;">
             <img id="tee-set-image-thumb" src="" alt="Set Image" style="max-width:150px; border-radius:8px; border:1px solid #ebedf0;">
             <p id="tee-set-name-preview" style="font-weight:700; margin:10px 0 0 0;"></p>

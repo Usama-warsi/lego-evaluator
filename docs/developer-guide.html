@@ -127,6 +127,7 @@
     <li class="section-head">PHP Classes</li>
     <li><a href="#class-main">ToyExchangeEvaluator</a></li>
     <li><a href="#class-api">TEE_Bricklink_API</a></li>
+    <li><a href="#class-rebrickable">TEE_Rebrickable_API</a></li>
     <li><a href="#class-logic">TEE_Evaluator_Logic</a></li>
     <li><a href="#class-admin">TEE_Admin_Settings</a></li>
 
@@ -202,6 +203,7 @@
 <span class="indent"><span class="dir">includes/</span></span><br>
 <span class="indent2"><span class="file">admin-settings.php</span>         <span class="comment">— class TEE_Admin_Settings: settings page &amp; tabs</span></span><br>
 <span class="indent2"><span class="file">bricklink-api.php</span>          <span class="comment">— class TEE_Bricklink_API: OAuth1 HTTP client</span></span><br>
+<span class="indent2"><span class="file">rebrickable-api.php</span>        <span class="comment">— class TEE_Rebrickable_API: set name search</span></span><br>
 <span class="indent2"><span class="file">evaluator-logic.php</span>        <span class="comment">— class TEE_Evaluator_Logic: offer calculation engine</span></span><br>
 <span class="indent"><span class="dir">templates/</span></span><br>
 <span class="indent2"><span class="file">evaluator-form.php</span>         <span class="comment">— Frontend HTML skeleton (shortcode output)</span></span><br>
@@ -232,9 +234,22 @@
   <section id="data-flow">
     <h2>Request Data Flow</h2>
 
-    <h3>Set Search Flow</h3>
+    <h3>Name Search Flow (Rebrickable)</h3>
     <div class="flow">
-      <div class="flow-box js">User types set #<br>clicks Search</div>
+      <div class="flow-box js">User types name<br>(debounced 450ms)</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box js">AJAX POST<br>tee_search_sets</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box php">TEE_Rebrickable_API<br>search_sets()</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box js">Results grid<br>rendered</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box js">User clicks card<br>→ set number filled</div>
+    </div>
+
+    <h3>Set Evaluation Flow (BrickLink)</h3>
+    <div class="flow">
+      <div class="flow-box js">Set number known<br>(grid pick or direct)</div>
       <div class="flow-arrow">→</div>
       <div class="flow-box js">AJAX POST<br>tee_evaluate_set</div>
       <div class="flow-arrow">→</div>
@@ -295,6 +310,8 @@
         <tr><td><code>wp_ajax_nopriv_tee_calculate_offer</code></td><td><code>ajax_calculate_offer()</code></td><td>10</td></tr>
         <tr><td><code>wp_ajax_tee_add_to_cart</code></td><td><code>ajax_add_to_cart()</code></td><td>10</td></tr>
         <tr><td><code>wp_ajax_nopriv_tee_add_to_cart</code></td><td><code>ajax_add_to_cart()</code></td><td>10</td></tr>
+        <tr><td><code>wp_ajax_tee_search_sets</code></td><td><code>ajax_search_sets()</code></td><td>10</td></tr>
+        <tr><td><code>wp_ajax_nopriv_tee_search_sets</code></td><td><code>ajax_search_sets()</code></td><td>10</td></tr>
       </tbody>
     </table>
 
@@ -370,6 +387,44 @@
     "params":    { "new_or_used": "U", "guide_type": "sold", ... },
     "response":  { "meta": {...}, "data": {...} }
 }</pre>
+  </section>
+
+  <!-- ═══ CLASS: REBRICKABLE ═══ -->
+  <section id="class-rebrickable">
+    <h2>Class: TEE_Rebrickable_API <span class="tag php">PHP</span></h2>
+    <p>Defined in <code>includes/rebrickable-api.php</code>. Provides set name/keyword search via the Rebrickable v3 REST API. BrickLink has no search endpoint, so this class fills that gap.</p>
+
+    <div class="method">
+      <div class="sig"><span class="kw">public function</span> <span class="fn">search_sets</span>(<span class="param">$query, $page_size = 10</span>): <span class="ret">array|WP_Error</span></div>
+      <div class="desc">
+        Calls <code>https://rebrickable.com/api/v3/lego/sets/?search={query}&amp;page_size={n}&amp;ordering=-year</code>.<br>
+        Returns an array of normalised set objects on success, an empty array if no results, or a <code>WP_Error</code> if the key is missing or the request fails.<br><br>
+        Each returned item has the shape:
+        <pre style="margin:8px 0 0;">{
+    "set_num":  "75192",      // trailing -1 suffix stripped
+    "name":     "Millennium Falcon",
+    "year":     2017,
+    "parts":    7541,
+    "image":    "https://cdn.rebrickable.com/..."
+}</pre>
+      </div>
+    </div>
+
+    <h3>Authentication</h3>
+    <p>Uses a simple API-key header: <code>Authorization: key {tee_rebrickable_api_key}</code>. The key is stored in the WordPress options table as <code>tee_rebrickable_api_key</code> and entered via <em>LEGO Evaluator → BrickLink API → Rebrickable API Key</em>.</p>
+
+    <h3>AJAX handler: ajax_search_sets()</h3>
+    <p>Registered on <code>wp_ajax_tee_search_sets</code> and <code>wp_ajax_nopriv_tee_search_sets</code>. Accepts a <code>query</code> POST parameter (min 2 chars) and returns the <code>search_sets()</code> result as JSON.</p>
+    <pre><span class="c">// JS call example</span>
+$.ajax({
+    url: tee_vars.ajax_url,
+    type: 'POST',
+    data: { action: 'tee_search_sets', nonce: tee_vars.nonce, query: 'Millennium Falcon' },
+    success: function (r) {
+        <span class="c">// r.data = [{ set_num, name, year, parts, image }, ...]</span>
+        renderNameSearchGrid(r.data);
+    }
+});</pre>
   </section>
 
   <!-- ═══ CLASS: LOGIC ═══ -->

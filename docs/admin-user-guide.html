@@ -123,7 +123,8 @@
   <ul>
     <li class="section-head">Getting Started</li>
     <li><a href="#installation">Installation</a></li>
-    <li><a href="#bricklink-api">Bricklink API Setup</a></li>
+    <li><a href="#bricklink-api">BrickLink API Setup</a></li>
+    <li><a href="#rebrickable-api">Rebrickable API Setup</a></li>
     <li><a href="#product-setup">WooCommerce Product</a></li>
 
     <li class="section-head">Settings Tabs</li>
@@ -198,13 +199,13 @@
 
   <!-- ═══ BRICKLINK API ═══ -->
   <section id="bricklink-api">
-    <h2>Bricklink API Setup</h2>
-    <p>The evaluator fetches live market prices and set details from the Bricklink API. You need a free Bricklink seller account to get API credentials.</p>
+    <h2>BrickLink API Setup</h2>
+    <p>The evaluator fetches live market prices and set details from the BrickLink API. You need a free BrickLink seller account to get API credentials.</p>
     <div class="steps">
       <div class="step">
         <div class="step-num">1</div>
         <div class="step-body">
-          <strong>Log in to Bricklink</strong>
+          <strong>Log in to BrickLink</strong>
           Go to <code>bricklink.com</code> and log in with your store account.
         </div>
       </div>
@@ -233,7 +234,7 @@
         <div class="step-num">5</div>
         <div class="step-body">
           <strong>Enter credentials in the plugin</strong>
-          Go to <em>LEGO Evaluator → API Credentials</em> and paste all four values, then click <strong>Save Changes</strong>.
+          Go to <em>LEGO Evaluator → BrickLink API</em> and paste all four values, then click <strong>Save Changes</strong>.
         </div>
       </div>
     </div>
@@ -248,7 +249,40 @@
     </table>
     <div class="notice warn">
       <span class="icon">⚠️</span>
-      <div>If you see <em>"Bricklink API credentials missing"</em> errors in the Logs tab, double-check that all four fields are saved correctly. Trailing spaces will cause authentication failures.</div>
+      <div>If you see <em>"BrickLink API credentials missing"</em> errors in the Logs tab, double-check that all four fields are saved correctly. Trailing spaces will cause authentication failures.</div>
+    </div>
+  </section>
+
+  <!-- ═══ REBRICKABLE API ═══ -->
+  <section id="rebrickable-api">
+    <h2>Rebrickable API Setup</h2>
+    <p>Rebrickable powers the <strong>set name search</strong> on the frontend. BrickLink does not provide a search-by-name endpoint, so customers can type a set name (e.g. <em>"Millennium Falcon"</em>) and see a grid of matching sets before selecting one for evaluation.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Create a free Rebrickable account</strong>
+          Go to <code>rebrickable.com</code> and register a free account.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Get your API key</strong>
+          Log in, open your profile menu → <em>Settings → API</em>. Your API key is listed there. Click <strong>Generate Key</strong> if none exists.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Enter the key in the plugin</strong>
+          Go to <em>LEGO Evaluator → BrickLink API</em>, scroll to the <strong>Rebrickable API</strong> section, paste your key, and click <strong>Save Changes</strong>.
+        </div>
+      </div>
+    </div>
+    <div class="notice info">
+      <span class="icon">ℹ️</span>
+      <div>Without a Rebrickable API key, name search is disabled. Customers can still type a set number directly into the search box and click Search to evaluate it via BrickLink.</div>
     </div>
   </section>
 
@@ -611,15 +645,23 @@
       <div class="step">
         <div class="step-num">1</div>
         <div class="step-body">
-          <strong>Enter a LEGO set number</strong>
-          The customer types a set number (e.g. <code>42154</code>) and clicks Search. The plugin fetches set details, new/used prices, and minifigure data from Bricklink in real time.
+          <strong>Search by name or set number</strong>
+          The customer types a set name (e.g. <em>"Millennium Falcon"</em>) or a known set number (e.g. <code>75192</code>). When text is entered, the plugin queries Rebrickable and displays a <strong>grid of matching sets</strong> with images, years, and part counts. The customer clicks the correct set from the grid.
+          <br><br>If a pure number is typed and the Search button is pressed, the plugin goes directly to BrickLink — skipping the grid for speed.
         </div>
       </div>
       <div class="step">
         <div class="step-num">2</div>
         <div class="step-body">
+          <strong>BrickLink data loads</strong>
+          After the customer selects a set from the grid (or enters a number directly), the plugin fetches set details, new/used prices, and minifigure data from BrickLink in real time.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
           <strong>Select condition</strong>
-          A <em>New</em> or <em>Used</em> card appears (only enabled types are shown). The customer selects one.
+          Both <em>New</em> and <em>Used</em> cards are shown. Disabled options display an amber notice if selected. The customer selects the appropriate condition.
         </div>
       </div>
       <div class="step">

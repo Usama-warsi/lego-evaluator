@@ -44,17 +44,89 @@ jQuery(document).ready(function ($) {
     initConditionCards();
 
     // 1. Search Logic
+
+    // --- Name search (Rebrickable) ---
+    var _nameSearchTimer = null;
+
+    $('#tee-set-number').on('input', function () {
+        var q = $(this).val().trim();
+        clearTimeout(_nameSearchTimer);
+        $('#tee-name-search-results').hide().empty();
+        if (q.length < 3) return;
+        // Pure set numbers (digits + optional dash) go straight to BrickLink via the button
+        if (/^\d[\d-]*$/.test(q)) return;
+        _nameSearchTimer = setTimeout(function () { doNameSearch(q); }, 450);
+    });
+
+    function doNameSearch(q) {
+        var $grid = $('#tee-name-search-results');
+        $grid.html('<p style="color:#606266;font-size:13px;margin:0;">Searching…</p>').show();
+        $.ajax({
+            url: tee_vars.ajax_url,
+            type: 'POST',
+            data: { action: 'tee_search_sets', nonce: tee_vars.nonce, query: q },
+            success: function (response) {
+                if (response.success && response.data.length > 0) {
+                    renderNameSearchGrid(response.data);
+                } else {
+                    $grid.html('<p style="color:#606266;font-size:13px;margin:0;">No sets found — try a different name or enter the set number directly.</p>');
+                }
+            },
+            error: function () { $grid.hide(); }
+        });
+    }
+
+    function renderNameSearchGrid(sets) {
+        var $grid = $('#tee-name-search-results').empty();
+        var $cards = $('<div class="tee-name-search-grid"></div>');
+        $.each(sets, function (i, set) {
+            var img = set.image || '';
+            var $card = $(
+                '<div class="tee-name-search-card" tabindex="0">' +
+                (img ? '<img src="' + img + '" alt="' + set.name + '">' : '<div class="tee-name-search-no-img"></div>') +
+                '<div class="tee-name-search-body">' +
+                    '<strong class="tee-name-search-title">' + set.name + '</strong>' +
+                    '<span class="tee-name-search-meta">#' + set.set_num + ' &nbsp;·&nbsp; ' + set.year + ' &nbsp;·&nbsp; ' + set.parts + ' pcs</span>' +
+                '</div>' +
+                '</div>'
+            );
+            $card.on('click keypress', function (e) {
+                if (e.type === 'keypress' && e.which !== 13) return;
+                $('#tee-set-number').val(set.set_num);
+                $grid.hide().empty();
+                searchSet();
+            });
+            $cards.append($card);
+        });
+        $grid.append($cards).show();
+    }
+
+    // --- Direct set-number search ---
     $('#tee-search-set').on('click', function () {
-        searchSet();
+        // If there's non-numeric text in the box and no grid yet, run a name search first
+        var q = $('#tee-set-number').val().trim();
+        if (q.length >= 3 && !/^\d[\d-]*$/.test(q) && $('#tee-name-search-results').is(':empty')) {
+            doNameSearch(q);
+        } else {
+            searchSet();
+        }
     });
 
     $('#tee-set-number').on('keypress', function (e) {
-        if (e.which == 13) searchSet();
+        if (e.which == 13) {
+            var q = $(this).val().trim();
+            if (q.length >= 3 && !/^\d[\d-]*$/.test(q)) {
+                doNameSearch(q);
+            } else {
+                searchSet();
+            }
+        }
     });
 
     function searchSet() {
-        var set_number = $('#tee-set-number').val();
+        var set_number = $('#tee-set-number').val().trim();
         if (!set_number) return;
+        $('#tee-name-search-results').hide().empty();
 
         $('#tee-search-error').hide();
         $('#tee-loading').show();
