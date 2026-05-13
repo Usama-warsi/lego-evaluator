@@ -134,13 +134,6 @@ jQuery(document).ready(function ($) {
         var sealDisabled = (userInputs.seals_intact === true  && !_acc.new_sealed) ||
                            (userInputs.seals_intact === false && !_acc.new_open);
 
-        // Hide the disabled swatch when showing its notice
-        if (userInputs.seals_intact === true && !_acc.new_sealed) {
-            sealOpts = sealOpts.filter(function(o) { return o.value !== true; });
-        } else if (userInputs.seals_intact === false && !_acc.new_open) {
-            sealOpts = sealOpts.filter(function(o) { return o.value !== false; });
-        }
-
         container.append('<label class="tee-question-label">Are all box seals intact?</label>');
         container.append(renderSwatches('seals_intact', sealOpts, userInputs.seals_intact));
 
@@ -200,14 +193,7 @@ jQuery(document).ready(function ($) {
         var compDisabled = (completionStr === '100' && !_acc.used_100) ||
                            (completionStr === '95'  && !_acc.used_95);
 
-        if (compDisabled) {
-            // Hide the disabled swatch when its notice is shown
-            if (completionStr === '100') {
-                compOpts = compOpts.filter(function(o) { return o.value !== '100'; });
-            } else if (completionStr === '95') {
-                compOpts = compOpts.filter(function(o) { return o.value !== '95'; });
-            }
-        } else {
+        if (!compDisabled) {
             // Only reset to first valid option when no disabled-notice is being shown
             var validVals = compOpts.map(function(o) { return String(o.value); });
             if (validVals.length > 0 && validVals.indexOf(completionStr) === -1) {
