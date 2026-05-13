@@ -31,6 +31,7 @@ class TEE_Admin_Settings {
         register_setting( 'tee_settings_group', 'tee_bricklink_consumer_secret' );
         register_setting( 'tee_settings_group', 'tee_bricklink_token_value' );
         register_setting( 'tee_settings_group', 'tee_bricklink_token_secret' );
+        register_setting( 'tee_settings_group', 'tee_rebrickable_api_key' );
         
         register_setting( 'tee_settings_group', 'tee_pricing_rules' );
         register_setting( 'tee_settings_group', 'tee_condition_rules' );
@@ -118,6 +119,18 @@ class TEE_Admin_Settings {
                         <tr>
                             <th scope="row"><?php _e( 'Token Secret', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Your BrickLink API Token Secret.', 'toy-exchange-evaluator' ) ); ?></th>
                             <td><input type="text" name="tee_bricklink_token_secret" value="<?php echo esc_attr( get_option( 'tee_bricklink_token_secret' ) ); ?>" class="regular-text"></td>
+                        </tr>
+                    </table>
+
+                    <h2><?php _e( 'Rebrickable API', 'toy-exchange-evaluator' ); ?></h2>
+                    <p><?php _e( 'Used for set name / keyword search. BrickLink does not provide a search endpoint.', 'toy-exchange-evaluator' ); ?></p>
+                    <table class="form-table">
+                        <tr>
+                            <th scope="row"><?php _e( 'API Key', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Your Rebrickable API key. Found in your Rebrickable account under Settings → API.', 'toy-exchange-evaluator' ) ); ?></th>
+                            <td>
+                                <input type="text" name="tee_rebrickable_api_key" value="<?php echo esc_attr( get_option( 'tee_rebrickable_api_key' ) ); ?>" class="regular-text">
+                                <p class="description"><?php _e( 'Enables customers to search sets by name on the frontend.', 'toy-exchange-evaluator' ); ?></p>
+                            </td>
                         </tr>
                     </table>
                 </div>

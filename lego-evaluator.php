@@ -23,6 +23,7 @@ define( 'TEE_VERSION', '1.0.0' );
 // Include required files
 require_once TEE_PLUGIN_DIR . 'includes/admin-settings.php';
 require_once TEE_PLUGIN_DIR . 'includes/bricklink-api.php';
+require_once TEE_PLUGIN_DIR . 'includes/rebrickable-api.php';
 require_once TEE_PLUGIN_DIR . 'includes/evaluator-logic.php';
 
 /**
@@ -48,6 +49,9 @@ class ToyExchangeEvaluator {
         
         add_action( 'wp_ajax_tee_add_to_cart', array( $this, 'ajax_add_to_cart' ) );
         add_action( 'wp_ajax_nopriv_tee_add_to_cart', array( $this, 'ajax_add_to_cart' ) );
+
+        add_action( 'wp_ajax_tee_search_sets', array( $this, 'ajax_search_sets' ) );
+        add_action( 'wp_ajax_nopriv_tee_search_sets', array( $this, 'ajax_search_sets' ) );
 
         add_action( 'wp_head', array( $this, 'output_custom_css' ) );
     }
@@ -256,6 +260,24 @@ class ToyExchangeEvaluator {
             'offer' => number_format( $calc_result, 2, '.', '' ),
             'weight' => $set_data['weight']
         ) );
+    }
+
+    public function ajax_search_sets() {
+        check_ajax_referer( 'tee_nonce', 'nonce' );
+
+        $query = sanitize_text_field( $_POST['query'] ?? '' );
+        if ( strlen( $query ) < 2 ) {
+            wp_send_json_error( __( 'Search query too short.', 'toy-exchange-evaluator' ) );
+        }
+
+        $api    = new TEE_Rebrickable_API();
+        $result = $api->search_sets( $query );
+
+        if ( is_wp_error( $result ) ) {
+            wp_send_json_error( $result->get_error_message() );
+        }
+
+        wp_send_json_success( $result );
     }
 
     public function ajax_add_to_cart() {
