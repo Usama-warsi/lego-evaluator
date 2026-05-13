@@ -32,6 +32,7 @@ class TEE_Admin_Settings {
         register_setting( 'tee_settings_group', 'tee_bricklink_token_value' );
         register_setting( 'tee_settings_group', 'tee_bricklink_token_secret' );
         register_setting( 'tee_settings_group', 'tee_rebrickable_api_key' );
+        register_setting( 'tee_settings_group', 'tee_rebrickable_exclude_words' );
         
         register_setting( 'tee_settings_group', 'tee_pricing_rules' );
         register_setting( 'tee_settings_group', 'tee_condition_rules' );
@@ -124,12 +125,23 @@ class TEE_Admin_Settings {
 
                     <h2><?php _e( 'Rebrickable API', 'toy-exchange-evaluator' ); ?></h2>
                     <p><?php _e( 'Used for set name / keyword search. BrickLink does not provide a search endpoint.', 'toy-exchange-evaluator' ); ?></p>
+                    <?php
+                    $default_exclude = "Book\nSticker Sheet\nKey Chain\nPen\nPencil\nMagnet\nWatch\nUnderwear\nSocks\nT-Shirt\nBackpack\nLunchbox\nCalendar\nGift Card\nPoster\nRuler\nEraser\nNotebook\nActivity Book\nColouring";
+                    $exclude_words   = get_option( 'tee_rebrickable_exclude_words', $default_exclude );
+                    ?>
                     <table class="form-table">
                         <tr>
                             <th scope="row"><?php _e( 'API Key', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Your Rebrickable API key. Found in your Rebrickable account under Settings → API.', 'toy-exchange-evaluator' ) ); ?></th>
                             <td>
                                 <input type="text" name="tee_rebrickable_api_key" value="<?php echo esc_attr( get_option( 'tee_rebrickable_api_key' ) ); ?>" class="regular-text">
                                 <p class="description"><?php _e( 'Enables customers to search sets by name on the frontend.', 'toy-exchange-evaluator' ); ?></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row"><?php _e( 'Exclude Keywords', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'One keyword per line. Any Rebrickable search result whose name contains one of these words (case-insensitive) will be hidden from the frontend grid.', 'toy-exchange-evaluator' ) ); ?></th>
+                            <td>
+                                <textarea name="tee_rebrickable_exclude_words" rows="10" class="large-text" style="font-family:monospace;"><?php echo esc_textarea( $exclude_words ); ?></textarea>
+                                <p class="description"><?php _e( 'One word or phrase per line. Used to hide non-set results (books, keychains, stickers, etc.) from the search grid.', 'toy-exchange-evaluator' ); ?></p>
                             </td>
                         </tr>
                     </table>

@@ -48,8 +48,24 @@ class TEE_Rebrickable_API {
             return array();
         }
 
+        // Build exclude list from admin option (one word/phrase per line)
+        $raw_excludes   = get_option( 'tee_rebrickable_exclude_words', '' );
+        $exclude_words  = array_filter( array_map( 'trim', explode( "\n", $raw_excludes ) ) );
+
         $sets = array();
         foreach ( $body['results'] as $set ) {
+            $name_lower = strtolower( $set['name'] );
+
+            // Skip if the set name contains any excluded keyword
+            $excluded = false;
+            foreach ( $exclude_words as $word ) {
+                if ( $word !== '' && strpos( $name_lower, strtolower( $word ) ) !== false ) {
+                    $excluded = true;
+                    break;
+                }
+            }
+            if ( $excluded ) continue;
+
             // Strip the trailing "-1" variant suffix for display / BrickLink lookup
             $set_num_clean = preg_replace( '/-\d+$/', '', $set['set_num'] );
             $sets[] = array(
