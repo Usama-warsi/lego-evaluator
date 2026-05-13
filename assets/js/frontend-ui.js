@@ -103,23 +103,24 @@ jQuery(document).ready(function ($) {
 
     // --- Direct set-number search ---
     $('#tee-search-set').on('click', function () {
-        // If there's non-numeric text in the box and no grid yet, run a name search first
         var q = $('#tee-set-number').val().trim();
-        if (q.length >= 3 && !/^\d[\d-]*$/.test(q) && $('#tee-name-search-results').is(':empty')) {
-            doNameSearch(q);
-        } else {
+        if (!q) return;
+        // Only send to BrickLink when input is a pure set number (digits + optional dash)
+        if (/^\d[\d-]*$/.test(q)) {
             searchSet();
+        } else {
+            doNameSearch(q);
         }
     });
 
     $('#tee-set-number').on('keypress', function (e) {
-        if (e.which == 13) {
-            var q = $(this).val().trim();
-            if (q.length >= 3 && !/^\d[\d-]*$/.test(q)) {
-                doNameSearch(q);
-            } else {
-                searchSet();
-            }
+        if (e.which !== 13) return;
+        var q = $(this).val().trim();
+        if (!q) return;
+        if (/^\d[\d-]*$/.test(q)) {
+            searchSet();
+        } else {
+            doNameSearch(q);
         }
     });
 

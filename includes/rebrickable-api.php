@@ -26,7 +26,7 @@ class TEE_Rebrickable_API {
         }
 
         $url = add_query_arg( array(
-            'search'    => rawurlencode( $query ),
+            'search'    => $query,
             'page_size' => intval( $page_size ),
             'ordering'  => '-year',
         ), $this->base_url . 'sets/' );
