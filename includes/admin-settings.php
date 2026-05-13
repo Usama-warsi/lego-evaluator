@@ -89,7 +89,7 @@ class TEE_Admin_Settings {
             <h1><?php _e( 'LEGO Evaluator Settings', 'toy-exchange-evaluator' ); ?></h1>
             
             <h2 class="nav-tab-wrapper" style="margin-bottom: 0;">
-                <a href="#tee-tab-api" class="nav-tab nav-tab-active"><?php _e( 'API Credentials', 'toy-exchange-evaluator' ); ?></a>
+                <a href="#tee-tab-api" class="nav-tab nav-tab-active"><?php _e( 'BrickLink API', 'toy-exchange-evaluator' ); ?></a>
                 <a href="#tee-tab-pricing" class="nav-tab"><?php _e( 'Pricing Rules', 'toy-exchange-evaluator' ); ?></a>
                 <a href="#tee-tab-conditions" class="nav-tab"><?php _e( 'Condition Rules', 'toy-exchange-evaluator' ); ?></a>
                 <a href="#tee-tab-styling" class="nav-tab"><?php _e( 'UI Styling', 'toy-exchange-evaluator' ); ?></a>
@@ -101,22 +101,22 @@ class TEE_Admin_Settings {
                 <?php settings_fields( 'tee_settings_group' ); ?>
                 
                 <div id="tee-tab-api" class="tee-tab-content active" style="background:#fff; padding:20px; border:1px solid #ccd0d4; border-top:none;">
-                    <h2><?php _e( 'Bricklink API Credentials', 'toy-exchange-evaluator' ); ?></h2>
+                    <h2><?php _e( 'BrickLink API Credentials', 'toy-exchange-evaluator' ); ?></h2>
                     <table class="form-table">
                         <tr>
-                            <th scope="row"><?php _e( 'Consumer Key', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Your Bricklink API Consumer Key.', 'toy-exchange-evaluator' ) ); ?></th>
+                            <th scope="row"><?php _e( 'Consumer Key', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Your BrickLink API Consumer Key.', 'toy-exchange-evaluator' ) ); ?></th>
                             <td><input type="text" name="tee_bricklink_consumer_key" value="<?php echo esc_attr( get_option( 'tee_bricklink_consumer_key' ) ); ?>" class="regular-text"></td>
                         </tr>
                         <tr>
-                            <th scope="row"><?php _e( 'Consumer Secret', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Your Bricklink API Consumer Secret.', 'toy-exchange-evaluator' ) ); ?></th>
+                            <th scope="row"><?php _e( 'Consumer Secret', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Your BrickLink API Consumer Secret.', 'toy-exchange-evaluator' ) ); ?></th>
                             <td><input type="text" name="tee_bricklink_consumer_secret" value="<?php echo esc_attr( get_option( 'tee_bricklink_consumer_secret' ) ); ?>" class="regular-text"></td>
                         </tr>
                         <tr>
-                            <th scope="row"><?php _e( 'Token Value', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Your Bricklink API Token Value.', 'toy-exchange-evaluator' ) ); ?></th>
+                            <th scope="row"><?php _e( 'Token Value', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Your BrickLink API Token Value.', 'toy-exchange-evaluator' ) ); ?></th>
                             <td><input type="text" name="tee_bricklink_token_value" value="<?php echo esc_attr( get_option( 'tee_bricklink_token_value' ) ); ?>" class="regular-text"></td>
                         </tr>
                         <tr>
-                            <th scope="row"><?php _e( 'Token Secret', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Your Bricklink API Token Secret.', 'toy-exchange-evaluator' ) ); ?></th>
+                            <th scope="row"><?php _e( 'Token Secret', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Your BrickLink API Token Secret.', 'toy-exchange-evaluator' ) ); ?></th>
                             <td><input type="text" name="tee_bricklink_token_secret" value="<?php echo esc_attr( get_option( 'tee_bricklink_token_secret' ) ); ?>" class="regular-text"></td>
                         </tr>
                     </table>
@@ -431,7 +431,7 @@ class TEE_Admin_Settings {
                             </td>
                         </tr>
                         <tr>
-                            <th scope="row"><?php _e( 'Debug Mode', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Enable to record Bricklink API requests and responses in the Logs tab for troubleshooting.', 'toy-exchange-evaluator' ) ); ?></th>
+                            <th scope="row"><?php _e( 'Debug Mode', 'toy-exchange-evaluator' ); ?> <?php echo $this->render_tooltip( __( 'Enable to record BrickLink API requests and responses in the Logs tab for troubleshooting.', 'toy-exchange-evaluator' ) ); ?></th>
                             <td>
                                 <input type="checkbox" name="tee_debug_mode" value="1" <?php checked( 1, get_option( 'tee_debug_mode' ), true ); ?>>
                                 <p class="description"><?php _e( 'Enable to save API responses and other debug information to logs.', 'toy-exchange-evaluator' ); ?></p>
