@@ -308,12 +308,16 @@ class ToyExchangeEvaluator {
             }
         }
 
-        // Custom cart item data to handle the evaluation details
+        // Custom cart item data to handle the evaluation details.
+        // The unique ID forces WooCommerce to create a separate line item even when
+        // the same set + condition is added more than once (otherwise WC merges
+        // identical cart_item_data into a single item with quantity > 1).
         $cart_item_data = array(
             'tee_evaluation' => array(
-                'price' => $price,
+                'price'  => $price,
                 'details' => $metadata,
-                'image' => $image
+                'image'  => $image,
+                'uid'    => uniqid( 'tee_', true ),
             )
         );
 
