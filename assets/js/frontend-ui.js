@@ -347,7 +347,10 @@ jQuery(document).ready(function ($) {
 
             // Handle boolean strings
             if (val === true || val === 'true') val = true;
-            if (val === false || val === 'false') val = false;
+            else if (val === false || val === 'false') val = false;
+            // jQuery auto-parses numeric data-value attributes as integers (e.g. data-value="95" → 95).
+            // Normalise back to string so comparisons like completion_level === '95' stay consistent.
+            else if (typeof val === 'number') val = String(val);
 
             if (field === 'details_combo') {
                 userInputs.has_box = (val === 'both' || val === 'box');
@@ -500,7 +503,7 @@ jQuery(document).ready(function ($) {
                 }
             }
         } else {
-            var compLabel = userInputs.completion_level === '100' ? '100% Complete' : (userInputs.completion_level === '95' ? 'Over 95%' : 'Under 95%');
+            var compLabel = String(userInputs.completion_level) === '100' ? '100% Complete' : (String(userInputs.completion_level) === '95' ? 'Over 95%' : 'Under 95%');
             tagsContainer.append('<span class="tee-tag">' + compLabel + '</span>');
             
             if (userInputs.completion_level !== 'less') {
@@ -586,7 +589,7 @@ jQuery(document).ready(function ($) {
                 parts.push(userInputs.is_complete ? 'Complete' : 'Incomplete');
             }
         } else {
-            var compLabel = userInputs.completion_level === '100' ? '100% Complete' : (userInputs.completion_level === '95' ? 'Over 95%' : 'Under 95%');
+            var compLabel = String(userInputs.completion_level) === '100' ? '100% Complete' : (String(userInputs.completion_level) === '95' ? 'Over 95%' : 'Under 95%');
             parts.push('Completion: ' + compLabel);
             if (userInputs.completion_level !== 'less') {
                 parts.push(userInputs.is_built ? 'Built' : 'Dismantled');
