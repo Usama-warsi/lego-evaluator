@@ -430,13 +430,20 @@ jQuery(document).ready(function ($) {
     }
 
     // 3. Calculation & Results
+    var _offerXhr = null; // track in-flight offer request so we can abort stale ones
+
     function calculateOffer() {
         if (!setData) return;
+
+        // Abort any previous in-flight request — prevents a slow response for an
+        // old selection (e.g. Under 95%) from overwriting the result banner after
+        // the user has already moved to a new selection (e.g. 100% Complete).
+        if (_offerXhr) { _offerXhr.abort(); _offerXhr = null; }
 
         $('#tee-final-price').html('<span class="tee-calc-loader"></span>');
         $('#tee-accept-set').prop('disabled', true);
 
-        $.ajax({
+        _offerXhr = $.ajax({
             url: tee_vars.ajax_url,
             type: 'POST',
             data: {
@@ -446,6 +453,7 @@ jQuery(document).ready(function ($) {
                 user_inputs: userInputs
             },
             success: function (response) {
+                _offerXhr = null;
                 $('#tee-accept-set').prop('disabled', false);
                 if (response.success) {
                     var data = response.data;
